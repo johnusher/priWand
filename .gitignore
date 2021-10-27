@@ -78,3 +78,5 @@ gyro_data.txt
 LinAcc_data.txt
 quaternion_data.txt
 /~$RaspiWiring.pptx
+/test_parse_quats.exe
+/priWand.code-workspace
