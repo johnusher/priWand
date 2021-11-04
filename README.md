@@ -560,13 +560,15 @@ Press any key, sent to mesh, and if it is a 0 or 1, we change led pattern.
 
 To exit, press "q" to exit termbox, and then ctrl-c to exit the program.
 
-There are various flags if certain HW modules are not attached to the raspi:
+
 
 
 ### Flags
 
+There are various flags if certain HW modules are not attached to the raspi:
+
 ```bash
-$ go run JU_led_mesh.go -h
+$ go run wand1.go -h
   -log-level string
     	log level, must be one of: panic, fatal, error, warn, info, debug, trace (default "info")
   -no-batman
@@ -582,7 +584,7 @@ $ go run JU_led_mesh.go -h
   -no-oled
     	run without sound  
   -rasp-id string
-    	unique raspberry pi ID (default "66")
+    	unique raspberry pi ID (default "60"). Only 2 characters. Recomended to use last 2 digits of the device IP.
   -web-addr string
     	address to serve web on (default ":8080")
 ```
@@ -592,7 +594,7 @@ $ go run JU_led_mesh.go -h
 Run with hardware (serial, network) API calls mocked out:
 
 ```bash
-go run JU_led_mesh.go --rasp-id "raspi 1" --web-addr :8080 --no-batman --no-duino --no-gps --no-lcd --log-level debug
+go run wand1.go --rasp-id "raspi 1" --web-addr :8080 --no-batman --no-duino --no-gps --no-lcd --log-level debug
 ```
 
 # Set up port forwarding for web server
