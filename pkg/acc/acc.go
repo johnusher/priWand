@@ -10,7 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	// "github.com/kpeu3i/bno055_2"
-	"github.com/johnusher/ardpifi/pkg/bno055_2"
+	"github.com/johnusher/priWand/pkg/bno055_2"
 )
 
 const (

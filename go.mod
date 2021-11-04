@@ -1,4 +1,4 @@
-module github.com/johnusher/ardpifi
+module github.com/johnusher/priWand
 
 go 1.15
 
@@ -15,6 +15,7 @@ require (
 	github.com/huin/goserial v0.0.0-20121012073615-7b90efdb22b1
 	github.com/jacobsa/go-serial v0.0.0-20180131005756-15cf729a72d4
 	github.com/jdevelop/golang-rpi-extras v0.0.0-20181010003844-c75e8edb0d6f
+	github.com/johnusher/ardpifi v0.0.0-20211018195758-cf90fa879ec8
 	github.com/kpeu3i/bno055 v1.0.3
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mattn/go-pointer v0.0.1

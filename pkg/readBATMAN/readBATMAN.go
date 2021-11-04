@@ -6,7 +6,7 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/johnusher/ardpifi/pkg/iface"
+	"github.com/johnusher/priWand/pkg/iface"
 	log "github.com/sirupsen/logrus"
 )
 

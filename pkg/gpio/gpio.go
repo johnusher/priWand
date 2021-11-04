@@ -21,7 +21,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/johnusher/ardpifi/pkg/wavs"
+	"github.com/johnusher/priWand/pkg/wavs"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/warthog618/gpiod"

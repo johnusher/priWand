@@ -1,4 +1,5 @@
 // test_GPIO.go
+DOES NOT WORK ON PI 4!!
 // read switch input from raspberry pi 3+ GPIO and light LED
 // uses command-line GPIOD.
 // debouncing handled using time.AfterFunc
