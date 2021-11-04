@@ -6,6 +6,10 @@
 
 // combines JU_led_mesh.go and test_GPIO2.go
 
+// key press Q to quit
+
+// go run wand1.go -rasp-id=66 --web-addr :8082 -no-duino -no-batman -log-level debug
+
 package main
 
 import (
@@ -27,6 +31,7 @@ import (
 
 	// "github.com/johnusher/priWand/pkg/gpio"
 
+	"github.com/johnusher/ardpifi/pkg/gpio"
 	"github.com/johnusher/priWand/pkg/acc"
 	"github.com/johnusher/priWand/pkg/gps"
 	"github.com/johnusher/priWand/pkg/iface"
@@ -100,13 +105,14 @@ func (c chatRequestWithTimestamp) String() string {
 }
 
 func main() {
-	raspID := flag.String("rasp-id", "r1", "unique raspberry pi ID") // we need to make this 2 bytes!
+	raspID := flag.String("rasp-id", "60", "unique raspberry pi ID") // only 2 characters. use last 2 digits of IP
 	webAddr := flag.String("web-addr", ":8080", "address to serve web on")
 	noBatman := flag.Bool("no-batman", false, "run without batman network")
 	noDuino := flag.Bool("no-duino", false, "run without arduino")
 	noGPS := flag.Bool("no-gps", false, "run without gps")
 	noOLED := flag.Bool("no-oled", false, "run without oled display")
 	noACC := flag.Bool("no-acc", false, "run without Bosch accelerometer")
+	noSound := flag.Bool("no-sound", false, "run without sound") // NB no-sound just means do not output sound- still need I2S connections (probably)
 
 	logLevel := flag.String("log-level", "info", "log level, must be one of: panic, fatal, error, warn, info, debug, trace")
 
@@ -124,6 +130,8 @@ func main() {
 	*raspID = (*raspID)[0:2]
 
 	// OLED:
+
+	// TODO: put all of this into a function called "setup OLED"
 
 	oled, err := oled.Open(&i2c.Devfs{Dev: "/dev/i2c-1"}, *noOLED)
 	if err != nil {
@@ -155,6 +163,10 @@ func main() {
 	if err := oled.Draw(); err != nil {
 		panic(err)
 	}
+
+	// End of OLED
+
+	// now start web broadcast
 
 	web := web.InitWeb(*webAddr)
 	log.Infof("web: %+v", web)
@@ -194,6 +206,7 @@ func main() {
 	}
 
 	//  now setup BATMAN:
+	// TODO: move all this to a function called "setUpBATMAN"
 
 	myIP := net.IP{}
 
@@ -234,7 +247,7 @@ func main() {
 		log.Errorf("failed to initialize acc: %s", err)
 		return
 	}
-	// defer a.Close()
+	// defer a.Close()  // why do we comment this?
 
 	// init GPS module:
 	gpsChan := make(chan gps.GPSMessage)
@@ -244,6 +257,16 @@ func main() {
 		return
 	}
 	defer g.Close()
+
+	// init gpio module:
+	gpioChan := make(chan gpio.GPIOMessage)
+	// gp, err := gpio.Init(gpioChan, *noGPIO)  // TBD
+	gp, err := gpio.Init(gpioChan, *noSound)
+	if err != nil {
+		log.Errorf("failed to initialize GPIO: %s", err)
+		return
+	}
+	defer gp.Close()
 
 	// go forth
 	go kb.Run()
@@ -259,8 +282,12 @@ func main() {
 	}
 	img := image.NewRGBA(image.Rect(0, 0, 128, 64))
 
+	// now we run the two loops
+	// messageLoop: listen for incoming, eg button press or messages on the BATMAN
+	// broadcastLoop: send message to BATMAN
+
 	go func() {
-		errs <- messageLoop(messages, accChan, duino, *raspID, img, oled, web, bcastIP, bm)
+		errs <- messageLoop(messages, accChan, duino, *raspID, img, oled, web, bcastIP, bm, gpioChan)
 	}()
 	go func() {
 		errs <- broadcastLoop(keys, gpsChan, duino, *raspID, bcastIP, bm, img, oled)
@@ -296,7 +323,7 @@ func main() {
 // 2 bytes: <who For = 2 bytes, (0= everyone, or ID of)>
 // 1 byte:  <message type (0=gps, 1=duino command, 2=gesture type)>
 // N bytes: <message, >0 bytes>
-func messageLoop(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino port.Port, raspID string, img *image.RGBA, oled oled.OLED, web *web.Web, bcastIP net.IP, bm *readBATMAN.ReadBATMAN) error {
+func messageLoop(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino port.Port, raspID string, img *image.RGBA, oled oled.OLED, web *web.Web, bcastIP net.IP, bm *readBATMAN.ReadBATMAN, gpioCh <-chan gpio.GPIOMessage) error {
 	log.Info("Starting message loop")
 	// listen on the keys channel for key presses AND listen for new BATMAN message
 	// allPIs keeps track of the last message received from each PI, keyed by
@@ -304,6 +331,10 @@ func messageLoop(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino port
 	allPIs := map[string]chatRequestWithTimestamp{}
 	accMessage := acc.ACCMessage{}
 	bcast := &net.UDPAddr{Port: batPort, IP: bcastIP}
+	// buttonDown := false
+	n := 0 // counts how long we have button down
+
+	gpioMessage := gpio.GPIOMessage{}
 
 	more := false
 
@@ -311,12 +342,50 @@ func messageLoop(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino port
 
 		select {
 
+		case gpioMessage, more = <-gpioCh:
+
+			if !more {
+				log.Infof("gpio channel closed\n")
+				log.Infof("exiting")
+				return nil
+			}
+
+			// log.Infof("gpio message %v", gpioMessage)
+			// receive a button change from gpio
+
+			buttonStatus := gpioMessage.ButtonFlag
+			// buttonStatus := gpio.GPIOMessage.buttonFlag
+			if buttonStatus == 0 {
+				// button down
+				// log.Infof("button down %v", buttonStatus)
+				// buttonDown = true
+				n = 0
+				// start recording quaternions from IMU
+			}
+
+			if buttonStatus == 1 {
+				// button up
+				// log.Infof("button up %v", buttonStatus)
+				// buttonDown = false
+
+				// stop recording quaternions from IMU,
+				// convert quaternions to 28x28 image
+				// pipe to TF, Python
+
+				if n > 20 {
+
+				} else {
+					log.Printf("shorty")
+				}
+
+			}
+
 		case accMessage, more = <-accCh:
 
 			// received message from BNo055 module.
 			// eg bearing, ie NSEW direction we are pointing
 			if !more {
-				log.Infof("acc channel closed\n")
+				log.Infof("messageLoop closing\n")
 				log.Infof("exiting")
 				return nil
 			}

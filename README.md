@@ -1,19 +1,21 @@
-# ardpifi
+# priWand
 
-# johnusher/ardpifi Summary
+# johnusher/priWand Summary
 
-Mesh network with Raspis to control Arduino controlled LED strips using GPS and accelerometers.
+Private Repo! <br />
+This repo is for the wand project. <br />
 
-A webserver on the pi provides a bi-directional UI (currently only via ethernet SSH to the headless pi).
+Mesh network between multiple Raspis for a nice game of Wand.
 
-LED code can be updated, compiled and flashed locally via USB from Raspi to Arduino using the duino CLI.
+A webserver on the pi provides a bi-directional UI.
 
-Keyboard inputs on each Raspi will send LED pattern info and sync across all Raspis in the network.
 
 
 
 
 ## Hardware set-up
+
+Tested with Pi 4, 3B, Zero (they have the same GPIO pin out)
 
 ![HardWare](https://github.com/johnusher/ardpifi/blob/master/ardPiFi_hw.png?raw=true)
   
@@ -38,7 +40,7 @@ NEO M-9N default 38000 baud UART, but changed to 9600 and poll every 2 seconds. 
 
 Useful GPS:
 ```bash
-go run test_GPS2.go 
+go run gps/test_GPS2.go 
 ```
 
 Prints Lat-Long cooridinates and HDOP.<br />
@@ -89,17 +91,17 @@ There is no built-in audio out with the Pi-Zero, so we use an I2S audio DAC: UDA
 from https://learn.adafruit.com/adafruit-i2s-stereo-decoder-uda1334a/raspberry-pi-wiring
 
 
-We must run audio playback as sudo! eg  go build wavestest.go && sudo ./wavestest 
 
-Optional:
 
-Edit /usr/share/alsa/alsa.conf to change pcm.front cards.pcm.front -> pcm.front cards.pcm.default
+Optional to remove ALSA errors:<br />
+sudo vi /usr/share/alsa/alsa.conf to change pcm.front cards.pcm.front -> pcm.front cards.pcm.default<br />
+Use the file alsa.conf in the git repo.
 
 sudo apt-get --no-install-recommends install jackd2
 
 ### GPIO: Button and LED
 
-An arcade push button attaches to GPIO27=  pin 13, and an LED with 330 Ohm series resistor to GPIO22 =  pin 15.
+A push button attaches to GPIO27=  pin 13, and an LED with 330 Ohm series resistor to GPIO22 =  pin 15.
 
 
 GPIO support not intalled for Raspi Lite so run this:
@@ -139,7 +141,10 @@ BCM| wPi |   Name  | Mode | V
 ```
 when pressed 
 
-
+To test GPIO is working, run test_GPIO2.go (you will need I2S connected for audio)
+```bash
+run test_GPIO2.go
+```
 
 ### Display screen
 OLED 128*64.
@@ -194,9 +199,6 @@ This should show the BNo055 on 28.
 
 There are "no hardware" options for running the main Go file without these HW modules.
 
-Run the go script, and keyboard numbers will send a command to the mesh network, eg controlling LED sequence on the LED strip.
-
-LED sequences can be programmed on the Raspi, compiled using arduino-cli, and flashed from the Raspi.
 
 ## WLAN dongle: 
 
@@ -300,7 +302,7 @@ Thus, you need to make sure the app is pre-compiled,
 ie
 ```bash
 cd /home/pi/apl/
-go build JU_led_mesh.go
+go build wand1.go
 ```
 
 There are many ways to do this, but this one is mine. systemctl is not my best friend. For about an hour, it was my life. I do not care to master it.
@@ -544,14 +546,14 @@ On raspi #1 run
 
 ```bash
 ./runBATMAN.sh
-go run JU_led_mesh.go -rasp-id=me --web-addr :8080 -log-level debug
+go run wand1.go -rasp-id=me --web-addr :8080 -log-level debug
 ```
 
 On raspi #2 run
 
 ```bash
 ./runBATMAN2.sh
-go run JU_led_mesh.go -rasp-id=poo --web-addr :8081 -no-lcd -log-level debug.
+go run wand1.go -rasp-id=poo --web-addr :8081 -no-lcd -log-level debug.
 ```
 
 Press any key, sent to mesh, and if it is a 0 or 1, we change led pattern.
@@ -577,8 +579,10 @@ $ go run JU_led_mesh.go -h
     	run without Bosch accelerometer      
   -no-oled
     	run without oled display      
+  -no-oled
+    	run without sound  
   -rasp-id string
-    	unique raspberry pi ID (default "raspi 1")
+    	unique raspberry pi ID (default "66")
   -web-addr string
     	address to serve web on (default ":8080")
 ```

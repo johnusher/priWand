@@ -2,6 +2,7 @@
 # Specific binaries
 GPIOTEST
 test_quats_64_to_py_tf
+wand1
 
 # JPEG
 *.jpg
@@ -73,11 +74,14 @@ oplog.txt
 pyenv
 /classifier/logs
 
+# txt files from logging
 euler_data.txt
 gyro_data.txt
 LinAcc_data.txt
 quaternion_data.txt
+
+# Windoze:
 /~$RaspiWiring.pptx
 /test_parse_quats.exe
 /priWand.code-workspace
-wand1
+
