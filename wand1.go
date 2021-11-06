@@ -31,8 +31,8 @@ import (
 
 	// "github.com/johnusher/priWand/pkg/gpio"
 
-	"github.com/johnusher/ardpifi/pkg/gpio"
 	"github.com/johnusher/priWand/pkg/acc"
+	"github.com/johnusher/priWand/pkg/gpio"
 	"github.com/johnusher/priWand/pkg/gps"
 	"github.com/johnusher/priWand/pkg/iface"
 	"github.com/johnusher/priWand/pkg/keyboard"
