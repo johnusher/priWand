@@ -452,7 +452,7 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 			if messageType == messageTypeButton {
 				buttonStatus := message[8]
 				crwt.ButtonStatus = int64(buttonStatus)
-				log.Infof("buttonStatus: %v", buttonStatus)
+				log.Infof("buttonStatus: %v", buttonStatus) // 0 is button down, 1 is up
 			}
 
 			if messageType == messageTypeGPS {
@@ -525,7 +525,7 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 						bearingI := int64(math.Round(bearing))
 						distI := int64(math.Round(distance))
 
-						// now see if bearing to this other pi matches pointing direction of the current pi:
+						// now see if bearing to this other pi matches pointing direction of the current pi AND current pi has button down
 						bearingMistmatch := int64(1)
 						if currentPD > 360-bearingThreshold && bearingI < bearingThreshold {
 							bearingMistmatch = Abs(currentPD - (bearingI + 360))
@@ -541,8 +541,10 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 						// msgP = fmt.Sprintf("bearingMistmatch, %d", bearingMistmatch)
 						// log.Infof(msgP)
 
-						if bearingMistmatch < bearingThreshold {
-							// we are pointing at another!!
+						if bearingMistmatch < bearingThreshold && self.ButtonStatus == 0 {
+							// we are pointing at another AND we have button down
+							// TODO we shuld check both HDOPs are <1.5 ?
+
 							// send key=1 to network, to the piID. ie using broadcastLoop
 
 							// duino message (9 bytes)
@@ -584,9 +586,9 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 						}
 
 						msg1 := fmt.Sprintf("bearing to %s = %d\xB0", crwt.ID, bearingI)
-						log.Infof(msg1)
+						//log.Infof(msg1)
 						msg2 := fmt.Sprintf("dist to %s = %d m", crwt.ID, distI)
-						log.Infof(msg2)
+						//log.Infof(msg2)
 
 						// msg1 = fmt.Sprintf("bearing = %d\xB0", bearingI)
 						msg1 = fmt.Sprintf("bearing = %d", bearingI)
