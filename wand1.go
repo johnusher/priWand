@@ -73,20 +73,22 @@ const (
 
 	magicByte = ("BA")
 
-	messageTypeGPS   = 0
-	messageTypeDuino = 1
+	messageTypeGPS    = 0
+	messageTypeDuino  = 1
+	messageTypeButton = 3
 
 	raspiIDEveryone = "00"
 )
 
 // ChatRequest is ChatRequest, stop telling me about comments
 type ChatRequest struct {
-	Latf     float64
-	Longf    float64
-	HDOPf    float64
-	ID       string
-	Key      rune
-	PointDir int64
+	Latf         float64
+	Longf        float64
+	HDOPf        float64
+	ID           string
+	Key          rune
+	PointDir     int64
+	ButtonStatus int64
 }
 
 type chatRequestWithTimestamp struct {
@@ -283,14 +285,14 @@ func main() {
 	img := image.NewRGBA(image.Rect(0, 0, 128, 64))
 
 	// now we run the two loops
-	// messageLoop: listen for incoming, eg button press or messages on the BATMAN
+	// receiveBATMAN: listen for incoming, eg button press or messages on the BATMAN
 	// broadcastLoop: send message to BATMAN
 
 	go func() {
-		errs <- messageLoop(messages, accChan, duino, *raspID, img, oled, web, bcastIP, bm, gpioChan)
+		errs <- receiveBATMAN(messages, accChan, duino, *raspID, img, oled, web, bcastIP, bm)
 	}()
 	go func() {
-		errs <- broadcastLoop(keys, gpsChan, duino, *raspID, bcastIP, bm, img, oled)
+		errs <- broadcastLoop(keys, gpsChan, duino, *raspID, bcastIP, bm, img, oled, gpioChan)
 	}()
 	go func() {
 		// handle key presses from web, send to messages channel
@@ -316,25 +318,21 @@ func main() {
 	}
 }
 
-// messageLoop receives incoming messages
+// receiveBATMAN receives incoming messages
 // 2 bytes: <2 magic bytes>
 // 1 byte:  <total message length, bytes>
 // 2 bytes: <sender ID = 2 bytes, (IP?)>
 // 2 bytes: <who For = 2 bytes, (0= everyone, or ID of)>
 // 1 byte:  <message type (0=gps, 1=duino command, 2=gesture type)>
 // N bytes: <message, >0 bytes>
-func messageLoop(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino port.Port, raspID string, img *image.RGBA, oled oled.OLED, web *web.Web, bcastIP net.IP, bm *readBATMAN.ReadBATMAN, gpioCh <-chan gpio.GPIOMessage) error {
+func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino port.Port, raspID string, img *image.RGBA, oled oled.OLED, web *web.Web, bcastIP net.IP, bm *readBATMAN.ReadBATMAN) error {
 	log.Info("Starting message loop")
-	// listen on the keys channel for key presses AND listen for new BATMAN message
+	// listen for new incoming BATMAN message
 	// allPIs keeps track of the last message received from each PI, keyed by
 	// raspID
 	allPIs := map[string]chatRequestWithTimestamp{}
 	accMessage := acc.ACCMessage{}
 	bcast := &net.UDPAddr{Port: batPort, IP: bcastIP}
-	// buttonDown := false
-	n := 0 // counts how long we have button down
-
-	gpioMessage := gpio.GPIOMessage{}
 
 	more := false
 
@@ -342,50 +340,12 @@ func messageLoop(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino port
 
 		select {
 
-		case gpioMessage, more = <-gpioCh:
-
-			if !more {
-				log.Infof("gpio channel closed\n")
-				log.Infof("exiting")
-				return nil
-			}
-
-			// log.Infof("gpio message %v", gpioMessage)
-			// receive a button change from gpio
-
-			buttonStatus := gpioMessage.ButtonFlag
-			// buttonStatus := gpio.GPIOMessage.buttonFlag
-			if buttonStatus == 0 {
-				// button down
-				// log.Infof("button down %v", buttonStatus)
-				// buttonDown = true
-				n = 0
-				// start recording quaternions from IMU
-			}
-
-			if buttonStatus == 1 {
-				// button up
-				// log.Infof("button up %v", buttonStatus)
-				// buttonDown = false
-
-				// stop recording quaternions from IMU,
-				// convert quaternions to 28x28 image
-				// pipe to TF, Python
-
-				if n > 20 {
-
-				} else {
-					log.Printf("shorty")
-				}
-
-			}
-
 		case accMessage, more = <-accCh:
 
 			// received message from BNo055 module.
 			// eg bearing, ie NSEW direction we are pointing
 			if !more {
-				log.Infof("messageLoop closing\n")
+				log.Infof("receiveBATMAN closing\n")
 				log.Infof("exiting")
 				return nil
 			}
@@ -489,6 +449,12 @@ func messageLoop(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino port
 
 			// now do some general house-keeping, set device IDs on the network etc:
 
+			if messageType == messageTypeButton {
+				buttonStatus := message[8]
+				crwt.ButtonStatus = int64(buttonStatus)
+				log.Infof("buttonStatus: %v", buttonStatus)
+			}
+
 			if messageType == messageTypeGPS {
 				// gps package
 
@@ -555,9 +521,9 @@ func messageLoop(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino port
 						long2 := crwt.Longf
 
 						bearing, _ := calcGPSBearing(lat1, long1, lat2, long2)
-						disance := calcGPSdistance(lat1, long1, lat2, long2)
+						distance := calcGPSdistance(lat1, long1, lat2, long2)
 						bearingI := int64(math.Round(bearing))
-						distI := int64(math.Round(disance))
+						distI := int64(math.Round(distance))
 
 						// now see if bearing to this other pi matches pointing direction of the current pi:
 						bearingMistmatch := int64(1)
@@ -635,18 +601,83 @@ func messageLoop(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino port
 	}
 }
 
-func broadcastLoop(keys <-chan rune, gpsCh <-chan gps.GPSMessage, duino port.Port, raspID string, bcastIP net.IP, bm *readBATMAN.ReadBATMAN, img *image.RGBA, oled oled.OLED) error {
+func broadcastLoop(keys <-chan rune, gpsCh <-chan gps.GPSMessage, duino port.Port, raspID string, bcastIP net.IP, bm *readBATMAN.ReadBATMAN, img *image.RGBA, oled oled.OLED, gpioCh <-chan gpio.GPIOMessage) error {
 	log.Info("Starting broadcast loop")
 
-	// this is for local messages, eg key-presses, GPS update, pointing direction
+	// this is for local messages from locl device hw, eg key-presses, GPS update, pointing direction, GPIO press
 
 	bcast := &net.UDPAddr{Port: batPort, IP: bcastIP}
 	gpsMessage := gps.GPSMessage{}
+
+	// buttonDown := false
+	n := 0 // counts how long we have button down
+	gpioMessage := gpio.GPIOMessage{}
 
 	more := false
 
 	for {
 		select {
+
+		case gpioMessage, more = <-gpioCh:
+
+			if !more {
+				log.Infof("gpio channel closed\n")
+				log.Infof("exiting")
+				return nil
+			}
+
+			// log.Infof("gpio message %v", gpioMessage)
+			// receive a button change from gpio
+
+			buttonmsgSize := 9                         // 32(?) bytes for  a button message
+			bMessageOut := make([]byte, buttonmsgSize) // sent to batman
+
+			copy(bMessageOut[0:2], magicByte)
+			bMessageOut[2] = uint8(buttonmsgSize)
+			copy(bMessageOut[3:5], raspID)
+
+			whoFor := raspiIDEveryone // message for everyone
+			copy(bMessageOut[5:7], whoFor)
+
+			messageType := messageTypeButton // GPS
+			bMessageOut[7] = uint8(messageType)
+
+			buttonStatus := gpioMessage.ButtonFlag
+
+			bMessageOut[8] = uint8(buttonStatus)
+
+			_, err := bm.Conn.WriteToUDP(bMessageOut, bcast)
+
+			if err != nil {
+				log.Error(err)
+				return err
+			}
+
+			// buttonStatus := gpio.GPIOMessage.buttonFlag
+			if buttonStatus == 0 {
+				// button down
+				// log.Infof("button down %v", buttonStatus)
+				// buttonDown = true
+				n = 0
+				// start recording quaternions from IMU
+			}
+
+			if buttonStatus == 1 {
+				// button up
+				// log.Infof("button up %v", buttonStatus)
+				// buttonDown = false
+
+				// stop recording quaternions from IMU,
+				// convert quaternions to 28x28 image
+				// pipe to TF, Python
+
+				if n > 20 {
+
+				} else {
+					log.Printf("shorty")
+				}
+
+			}
 
 		case gpsMessage, more = <-gpsCh:
 
@@ -689,8 +720,6 @@ func broadcastLoop(keys <-chan rune, gpsCh <-chan gps.GPSMessage, duino port.Por
 				binary.LittleEndian.PutUint64(messageOut[8:16], math.Float64bits(gpsMessage.Lat))
 				binary.LittleEndian.PutUint64(messageOut[16:24], math.Float64bits(gpsMessage.Long))
 				binary.LittleEndian.PutUint64(messageOut[24:32], math.Float64bits(gpsMessage.HDOP))
-
-				// todo: send HDOP!!
 
 				_, err := bm.Conn.WriteToUDP(messageOut, bcast)
 				if err != nil {
