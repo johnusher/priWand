@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
+
+	// "math/rand"
 	"net"
 	"os"
 	"os/signal"
@@ -289,7 +291,8 @@ func main() {
 	// broadcastLoop: send message to BATMAN
 
 	go func() {
-		errs <- receiveBATMAN(messages, accChan, duino, *raspID, img, oled, web, bcastIP, bm)
+		// errs <- receiveBATMAN(messages, accChan, duino, *raspID, img, oled, web, bcastIP, bm)
+		errs <- receiveBATMAN(messages, accChan, duino, *raspID, img, oled, web, bcastIP, bm, gp)
 	}()
 	go func() {
 		errs <- broadcastLoop(keys, gpsChan, duino, *raspID, bcastIP, bm, img, oled, gpioChan)
@@ -325,7 +328,9 @@ func main() {
 // 2 bytes: <who For = 2 bytes, (0= everyone, or ID of)>
 // 1 byte:  <message type (0=gps, 1=duino command, 2=gesture type)>
 // N bytes: <message, >0 bytes>
-func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino port.Port, raspID string, img *image.RGBA, oled oled.OLED, web *web.Web, bcastIP net.IP, bm *readBATMAN.ReadBATMAN) error {
+// func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino port.Port, raspID string, img *image.RGBA, oled oled.OLED, web *web.Web, bcastIP net.IP, bm *readBATMAN.ReadBATMAN) error {
+func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino port.Port, raspID string, img *image.RGBA, oled oled.OLED, web *web.Web, bcastIP net.IP, bm *readBATMAN.ReadBATMAN, GPIO gpio.GPIO) error {
+
 	log.Info("Starting message loop")
 	// listen for new incoming BATMAN message
 	// allPIs keeps track of the last message received from each PI, keyed by
@@ -433,6 +438,14 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 						// OLED display:
 						OLEDmsg := fmt.Sprintf("received:  %s", (string(duinoMessage)))
 						oled.ShowText(img, 2, OLEDmsg)
+
+						// now we want to play wav
+						// wav play is handled in pkg gpio
+						// catMeowN := rand.Int31n(2) + 1
+						catMeowN := 3
+						catcat := fmt.Sprintf("howl%d.wav", catMeowN)
+						GPIO.PlayWav(catcat) // play wav
+
 					}
 				}
 			}
@@ -540,6 +553,11 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 
 						// msgP = fmt.Sprintf("bearingMistmatch, %d", bearingMistmatch)
 						// log.Infof(msgP)
+
+						if bearingMistmatch < bearingThreshold && self.ButtonStatus == 1 {
+							msgP := fmt.Sprintf("We are pointing at %s, but button is not down", crwt.ID)
+							log.Infof(msgP)
+						}
 
 						if bearingMistmatch < bearingThreshold && self.ButtonStatus == 0 {
 							// we are pointing at another AND we have button down

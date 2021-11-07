@@ -30,6 +30,7 @@ import (
 type GPIO interface {
 	//Run() error
 	Close() error
+	PlayWav(string)
 }
 
 type GPIOMessage struct {
@@ -37,6 +38,7 @@ type GPIOMessage struct {
 	ButtonDownTime time.Time
 }
 
+// type gpio struct {
 type gpio struct {
 	gpio           chan<- GPIOMessage
 	buttonDownTime time.Time
@@ -225,6 +227,14 @@ func (g *gpio) Close() error {
 	// c.Close()
 	g.button.Close()
 	return g.led.Close()
+}
+
+func (g *gpio) PlayWav(wavName string) {
+	// here we should play wav!!
+	log.Infof("play wav %s \n", wavName)
+	// pushButton.buttonWavs.Play(wavName)  // how to do this??
+
+	return
 }
 
 // func (g *gpio) Run() error {
