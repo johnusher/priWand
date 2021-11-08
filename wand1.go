@@ -278,6 +278,10 @@ func main() {
 	go g.Run()
 	go a.Run()
 
+	gp.PlayWav("hello.wav") // play wav
+
+	// log.Info("gp, %v", gp)
+
 	errs := make(chan error)
 
 	// clear the OLED
@@ -329,7 +333,7 @@ func main() {
 // 1 byte:  <message type (0=gps, 1=duino command, 2=gesture type)>
 // N bytes: <message, >0 bytes>
 // func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino port.Port, raspID string, img *image.RGBA, oled oled.OLED, web *web.Web, bcastIP net.IP, bm *readBATMAN.ReadBATMAN) error {
-func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino port.Port, raspID string, img *image.RGBA, oled oled.OLED, web *web.Web, bcastIP net.IP, bm *readBATMAN.ReadBATMAN, GPIO gpio.GPIO) error {
+func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino port.Port, raspID string, img *image.RGBA, oled oled.OLED, web *web.Web, bcastIP net.IP, bm *readBATMAN.ReadBATMAN, gp gpio.GPIO) error {
 
 	log.Info("Starting message loop")
 	// listen for new incoming BATMAN message
@@ -441,11 +445,7 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 
 						// now we want to play wav
 						// wav play is handled in pkg gpio
-						// catMeowN := rand.Int31n(2) + 1
-						catMeowN := 3
-						catcat := fmt.Sprintf("howl%d.wav", catMeowN)
-						GPIO.PlayWav(catcat) // play wav
-
+						gp.PlayWav("hello.wav") // play wav
 					}
 				}
 			}

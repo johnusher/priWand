@@ -27,6 +27,15 @@ import (
 	"github.com/warthog618/gpiod"
 )
 
+// var PushButton gpio
+
+var PushButton = &gpio{
+	// gpio:            gpioChan,
+	buttonFlag:      0,
+	buttonDownTime:  time.Now(),
+	cancelButtonWav: make([]chan struct{}, 0),
+}
+
 type GPIO interface {
 	//Run() error
 	Close() error
@@ -74,15 +83,17 @@ func initGPIO(gpioChan chan<- GPIOMessage, noSound bool) (GPIO, error) {
 
 	wavsp := wavs.InitWavs(noSound)
 
-	// pushButton is the struct we want to send out
-	pushButton := &gpio{
-		gpio:            gpioChan,
-		buttonFlag:      0,
-		buttonDownTime:  time.Now(),
-		cancelButtonWav: make([]chan struct{}, 0),
-	}
-	pushButton.buttonWavs = *wavsp
-	buttonEventHandler := mkButtonEventHandler(pushButton)
+	// PushButton is the struct we want to send out
+	// PushButton = &gpio{
+	// 	gpio:            gpioChan,
+	// 	buttonFlag:      0,
+	// 	buttonDownTime:  time.Now(),
+	// 	cancelButtonWav: make([]chan struct{}, 0),
+	// }
+	PushButton.gpio = gpioChan
+
+	PushButton.buttonWavs = *wavsp
+	buttonEventHandler := mkButtonEventHandler(PushButton)
 
 	// on pi 4, we need to set GPIO 27 to pull up like this:
 	// raspi-gpio set 27 pu
@@ -175,16 +186,16 @@ func initGPIO(gpioChan chan<- GPIOMessage, noSound bool) (GPIO, error) {
 		return nil, err
 	}
 
-	pushButton.button = *buttonp
+	PushButton.button = *buttonp
 
-	// defer pushButton.button.Close()
+	// defer PushButton.button.Close()
 
 	// Set up button with interrupt watch using gpiod
 	// offset := rpi.J8p13
 	offset = 22
 	ledp, err := c.RequestLine(offset, gpiod.AsOutput(0)) // during request
 
-	pushButton.led = *ledp
+	PushButton.led = *ledp
 
 	// NB remove pullup from the gpiod function call: requires kernel 5.5 for pullup/pulldown support.
 	if err != nil {
@@ -192,16 +203,16 @@ func initGPIO(gpioChan chan<- GPIOMessage, noSound bool) (GPIO, error) {
 		os.Exit(1)
 		return nil, err
 	}
-	// defer pushButton.led.Close()  // should this go here or in close func??
+	// defer PushButton.led.Close()  // should this go here or in close func??
 
 	return &gpio{gpioChan,
 		time.Now(),               // buttonDownTime
 		0,                        // buttonFlag
 		-1,                       // lastEvent int
 		time.Now(),               // lastDownUpTime time.Time
-		pushButton.button,        // button   gpiod.Line
-		pushButton.led,           // 	led  gpiod.Line
-		pushButton.buttonWavs,    // 	buttonWavs   wavs.Wavs
+		PushButton.button,        // button   gpiod.Line
+		PushButton.led,           // 	led  gpiod.Line
+		PushButton.buttonWavs,    // 	buttonWavs   wavs.Wavs
 		make([]chan struct{}, 0), // cancelButtonWav []chan struct{}
 		sync.Mutex{},             // sync.Mutex      // protects cancelButtonWav
 	}, nil
@@ -232,7 +243,8 @@ func (g *gpio) Close() error {
 func (g *gpio) PlayWav(wavName string) {
 	// here we should play wav!!
 	log.Infof("play wav %s \n", wavName)
-	// pushButton.buttonWavs.Play(wavName)  // how to do this??
+	// PushButton.buttonWavs.Play(wavName)  // how to do this??
+	PushButton.buttonWavs.Play(wavName)
 
 	return
 }
@@ -247,29 +259,29 @@ func (g *gpio) PlayWav(wavName string) {
 
 // }
 
-func delayedButtonHandle(pushButton *gpio) {
-	buttonStatus, _ := pushButton.button.Value() // Read state from line (active / inactive)
+func delayedButtonHandle(PushButton *gpio) {
+	buttonStatus, _ := PushButton.button.Value() // Read state from line (active / inactive)
 
-	pushButton.gpio <- GPIOMessage{int16(buttonStatus), time.Now()}
+	PushButton.gpio <- GPIOMessage{int16(buttonStatus), time.Now()}
 
 	if buttonStatus == 0 { // low= button pressed down
-		pushButton.led.SetValue(1) // light LED
+		PushButton.led.SetValue(1) // light LED
 
 		// first down: restart timer
 		t := time.Now()
-		pushButton.buttonDownTime = t
+		PushButton.buttonDownTime = t
 
 		// play long howl
 		catMeowN := rand.Int31n(2) + 1
 		catcat := fmt.Sprintf("howl%d.wav", catMeowN)
 
-		cancelButtonWav := pushButton.enqueue()
+		cancelButtonWav := PushButton.enqueue()
 		go func() {
 			// either play after 150ms, or bail if close(cancelButtonWav) is called
 			select {
 			case <-time.After(150 * time.Millisecond):
 				// log.Info("howl!", catcat)
-				pushButton.buttonWavs.Play(catcat)
+				PushButton.buttonWavs.Play(catcat)
 
 			case <-cancelButtonWav:
 
@@ -281,47 +293,47 @@ func delayedButtonHandle(pushButton *gpio) {
 
 	} else {
 		// button has been lifted
-		pushButton.led.SetValue(0) // turn off LED
+		PushButton.led.SetValue(0) // turn off LED
 		now := time.Now()
-		elapsedTime := now.Sub(pushButton.buttonDownTime)
+		elapsedTime := now.Sub(PushButton.buttonDownTime)
 
-		pushButton.flush()
+		PushButton.flush()
 		// newtimer2.Stop()
-		pushButton.buttonWavs.StopAll()
+		PushButton.buttonWavs.StopAll()
 
 		if elapsedTime < 400*time.Millisecond {
 			// play short bark:
 			catMeowN2 := rand.Int31n(9) + 1
 			catcat2 := fmt.Sprintf("bark%d.wav", catMeowN2)
-			pushButton.buttonWavs.Play(catcat2)
+			PushButton.buttonWavs.Play(catcat2)
 			fmt.Println(elapsedTime)
 
 		}
 
 	}
-	pushButton.buttonFlag = 0
+	PushButton.buttonFlag = 0
 
 }
 
-func mkButtonEventHandler(pushButton *gpio) func(gpiod.LineEvent) {
+func mkButtonEventHandler(PushButton *gpio) func(gpiod.LineEvent) {
 
 	return func(evt gpiod.LineEvent) {
 
-		buttonStatus, _ := pushButton.button.Value()
-		if buttonStatus == pushButton.lastEvent {
+		buttonStatus, _ := PushButton.button.Value()
+		if buttonStatus == PushButton.lastEvent {
 			return
 		}
 
-		pushButton.lastEvent = buttonStatus
+		PushButton.lastEvent = buttonStatus
 
-		// if pushButton.buttonFlag == 0 {
+		// if PushButton.buttonFlag == 0 {
 
-		// 	pushButton.buttonFlag = 1 // flag =1 , ie button active
+		// 	PushButton.buttonFlag = 1 // flag =1 , ie button active
 
 		//go func() {
 		// time.Sleep(8 * time.Millisecond)
-		// pushButton.gpio <- GPIOMessage{int16(1), time.Now()}
-		delayedButtonHandle(pushButton)
+		// PushButton.gpio <- GPIOMessage{int16(1), time.Now()}
+		delayedButtonHandle(PushButton)
 		//}()
 
 		// } else {
