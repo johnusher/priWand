@@ -35,8 +35,11 @@ func (m *mockGPS) Run() error {
 			m.log.Info("Exiting Run()")
 			return nil
 		case <-ticker.C:
-			lat := 52.534634 + rand.Float64()*0.0001
-			long := 13.347364 + rand.Float64()*0.0001
+			// lat := 52.534634 + rand.Float64()*0.0001
+			// long := 13.347364 + rand.Float64()*0.0001
+			lat := 52.43146714982653 + rand.Float64()*0.0001
+			long := 13.544548514083534 + rand.Float64()*0.0001
+
 			// fixQuality := uint16(1)
 			hdop := 0.9 + rand.Float64()*0.1
 

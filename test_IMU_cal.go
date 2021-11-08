@@ -7,11 +7,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/kpeu3i/bno055"
+	"github.com/johnusher/priWand/pkg/bno055_2"
+	// "github.com/kpeu3i/bno055"
 )
 
 func main() {
-	sensor, err := bno055.NewSensor(0x28, 3)
+	sensor, err := bno055_2.NewSensor(0x28, 3)
 	if err != nil {
 		panic(err)
 	}
@@ -23,16 +24,16 @@ func main() {
 
 	var (
 		isCalibrated       bool
-		calibrationOffsets bno055.CalibrationOffsets
-		calibrationStatus  *bno055.CalibrationStatus
+		calibrationOffsets bno055_2.CalibrationOffsets
+		calibrationStatus  *bno055_2.CalibrationStatus
 	)
 
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
 
-	err = sensor.setOperationMode(prevMode)
+	err = sensor.EsetOperationMode(0x0C)
 	if err != nil {
-		return err
+		panic(err)
 	}
 
 	for !isCalibrated {
@@ -51,7 +52,8 @@ func main() {
 			isCalibrated = calibrationStatus.IsCalibrated()
 
 			fmt.Printf(
-				"\r*** Calibration status (0..3): system=%v, accelerometer=%v, gyroscope=%v, magnetometer=%v",
+				"\r*** isCalibrated=%v: Calibration status (0..3): system=%v, accelerometer=%v, gyroscope=%v, magnetometer=%v",
+				isCalibrated,
 				calibrationStatus.System,
 				calibrationStatus.Accelerometer,
 				calibrationStatus.Gyroscope,

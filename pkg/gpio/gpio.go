@@ -27,9 +27,7 @@ import (
 	"github.com/warthog618/gpiod"
 )
 
-// var PushButton gpio
-
-var PushButton = &gpio{
+var PushButton = &gpio{ // make this a global so we can call gpio.PlayWav() externally
 	// gpio:            gpioChan,
 	buttonFlag:      0,
 	buttonDownTime:  time.Now(),

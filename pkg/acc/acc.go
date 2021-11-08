@@ -80,7 +80,42 @@ func initACC(accChan chan<- ACCMessage) (ACC, error) {
 		panic(err)
 	}
 
-	fmt.Printf("*** Status: system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
+	fmt.Printf("*** ICU Status: system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
+
+	// System Status (see section 4.3.58)
+	// ---------------------------------
+	// 0 = Idle
+	// 1 = System Error
+	// 2 = Initializing Peripherals
+	// 3 = System Initialization
+	// 4 = Executing Self-Test
+	// 5 = Sensor fusion algorithm running
+	// 6 = System running without fusion algorithms
+
+	// System Error (see section 4.3.59)
+	//---------------------------------
+	// 0 = No error
+	// 1 = Peripheral initialization error
+	// 2 = System initialization error
+	// 3 = Self test result failed
+	// 4 = Register map value out of range
+	// 5 = Register map address out of range
+	// 6 = Register map write error
+	// 7 = BNO low power mode not available for selected operation ion mode
+	// 8 = Accelerometer power mode not available
+	// 9 = Fusion algorithm configuration error
+	// A = Sensor configuration error
+
+	// Self Test Results
+	// --------------------------------
+	// 1 = test passed, 0 = test failed
+	//
+	// Bit 0 = Accelerometer self test
+	// Bit 1 = Magnetometer self test
+	// Bit 2 = Gyroscope self test
+	// Bit 3 = MCU self test
+	//
+	// 15=0x0F = all good!
 
 	_, err = sensor.AxisConfig()
 	if err != nil {
