@@ -281,6 +281,7 @@ func (a *acc) Run() error {
 		}
 
 		time.Sleep(5 * time.Millisecond) // check this for TF model!
+		// todo: how to have different time for Bearing vs Quats
 	}
 
 }

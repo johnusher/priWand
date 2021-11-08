@@ -598,6 +598,10 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 
 							msgP := fmt.Sprintf("We are pointing at %s", crwt.ID)
 							log.Infof(msgP)
+
+							msgP = fmt.Sprintf("self.ButtonStatus  %v", self.ButtonStatus)
+							log.Infof(msgP)
+
 							// msgP = fmt.Sprintf("Pointing at", crwt.ID)
 							// oled.ShowText(img, 5, msgP)
 
