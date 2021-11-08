@@ -36,6 +36,8 @@ func main() {
 		panic(err)
 	}
 
+	// fmt.Printf("*** OG Calibration offsets: %v\n", bno055_2.CalibrationOffsets)
+
 	for !isCalibrated {
 		select {
 		case <-signals:

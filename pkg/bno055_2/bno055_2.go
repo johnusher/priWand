@@ -344,6 +344,7 @@ func (s *Sensor) RemapAxis(config *AxisConfig) error {
 		return err
 	}
 
+	// here we set the sign
 	err = s.bus.Write(bno055AxisMapSign, config.Signs())
 	if err != nil {
 		return err

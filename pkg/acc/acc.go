@@ -4,6 +4,9 @@ package acc
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	// "github.com/kpeu3i/bno055"
@@ -121,6 +124,60 @@ func initACC(accChan chan<- ACCMessage) (ACC, error) {
 	if err != nil {
 		panic(err)
 	}
+
+	// enter loop to calibrate
+	// time-ut after 2 secs
+	var (
+		isCalibrated       bool
+		calibrationOffsets bno055_2.CalibrationOffsets
+		calibrationStatus  *bno055_2.CalibrationStatus
+	)
+
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+
+	calTimeNow := time.Now()
+	calTimeNowNow := time.Now()
+
+	for !isCalibrated {
+		select {
+		case <-signals:
+			err := sensor.Close()
+			if err != nil {
+				panic(err)
+			}
+		default:
+			calibrationOffsets, calibrationStatus, err = sensor.Calibration()
+			if err != nil {
+				panic(err)
+			}
+
+			isCalibrated = calibrationStatus.IsCalibrated()
+
+			fmt.Printf(
+				"\r*** isCalibrated=%v: Calibration status (0..3): system=%v, accelerometer=%v, gyroscope=%v, magnetometer=%v",
+				isCalibrated,
+				calibrationStatus.System,
+				calibrationStatus.Accelerometer,
+				calibrationStatus.Gyroscope,
+				calibrationStatus.Magnetometer,
+			)
+
+			// fmt.Printf("Calibration offsets: %v\n", calibrationOffsets)
+		}
+
+		time.Sleep(100 * time.Millisecond)
+
+		calTimeNowNow = time.Now()
+
+		elapsedTime := calTimeNowNow.Sub(calTimeNow)
+
+		if elapsedTime > 2000*time.Millisecond {
+			isCalibrated = true
+		}
+	}
+
+	fmt.Printf("*** Done! Calibration offsets: %v\n", calibrationOffsets)
 
 	// err = sensor.EsetOperationMode(0x08)
 	err = sensor.EsetOperationMode(0x0C) // fast mag cal
