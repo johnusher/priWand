@@ -72,9 +72,14 @@ type Quaternion struct {
 	W float32
 }
 
+// var defaultCalibrationOffsets CalibrationOffsets = []byte{
+// 	239, 255, 184, 255, 10, 0, 196, 0, 193, 0,
+// 	85, 255, 128, 0, 0, 0, 1, 0, 232, 3, 0, 0,
+// }
+
 var defaultCalibrationOffsets CalibrationOffsets = []byte{
-	239, 255, 184, 255, 10, 0, 196, 0, 193, 0,
-	85, 255, 128, 0, 0, 0, 1, 0, 232, 3, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 232, 3, 0, 0,
 }
 
 type I2CBus interface {
