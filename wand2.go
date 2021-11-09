@@ -380,6 +380,7 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 			oled.ShowText(img, 1, msgP)
 
 		case message, _ := <-messages:
+			// message on the BATMAN
 
 			magicBytesRx := string(message[0:2]) // combine the magicBytes
 
@@ -471,7 +472,7 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 			}
 
 			if messageType == messageTypeGPS {
-				// gps package
+				// gps package: work out relative location of self to this other wand
 
 				// Received Lattitude is a float 64 in message bytes 8:15
 				// Received Long is a float 64 in message bytes 16:23
@@ -512,7 +513,8 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 				log.Infof("  %s", v)
 			}
 
-			if messageType == messageTypeGPS {
+			// if messageType == messageTypeGPS {
+			if messageType == messageTypeButton {
 				if self, ok := allPIs[raspID]; ok && len(allPIs) > 1 {
 					// we have >1 Pis, including ourself, find bearing and distance from local to each pi
 
@@ -665,7 +667,7 @@ func broadcastLoop(keys <-chan rune, gpsCh <-chan gps.GPSMessage, duino port.Por
 			whoFor := raspiIDEveryone // message for everyone
 			copy(bMessageOut[5:7], whoFor)
 
-			messageType := messageTypeButton // GPS
+			messageType := messageTypeButton // GPIO
 			bMessageOut[7] = uint8(messageType)
 
 			buttonStatus := gpioMessage.ButtonFlag
