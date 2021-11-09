@@ -22,6 +22,11 @@ import (
 	"github.com/jacobsa/go-serial/serial"
 )
 
+const (
+	Pi = 3.14159265358979323846264338327950288419716939937510582097494459 // pi https://oeis.org/A000796
+
+)
+
 type GPS interface {
 	Run() error
 	Close() error
@@ -232,4 +237,69 @@ func (nmea NMEA) GetLongitude() (string, error) {
 func (nmea NMEA) GetHorizontalDilution() string {
 	// Horizontal Dilution of Precision (HDOP) 1.0 to 9.9
 	return nmea.horizontalDilution
+}
+
+func CalcGPSBearing(lat1 float64, long1 float64, lat2 float64, long2 float64) (float64, error) {
+
+	// find bearing between two decimal GPS coordinates
+
+	// if lat1 == "" || long1 == "" {
+	// 	return "", errors.New("lat1 or lat2 value does not exist")
+	// }
+	// lat, _ := strconv.ParseFloat(value, 64)
+	// degrees := math.Floor(lat / 100)
+	// minutes := ((lat / 100) - math.Floor(lat/100)) * 100 / 60
+	// decimal := degrees + minutes
+
+	// if we are stradling the equartor or the Prime Meridian, we may have a problem!!
+	// todo: impliement
+	// if direction == "W" || direction == "S" {
+	//     decimal *= -1
+	// }
+
+	dy := lat2 - lat1
+	dx := math.Cos(Pi/180.0*lat1) * (long2 - long1)
+	angle := math.Atan2(dy, dx)
+	angle = angle / Pi * 180.0
+
+	if angle < 0 {
+		angle = 360 + angle
+
+	}
+	// return int(math.Round(angle)), nil
+	return angle, nil
+}
+
+// distance between two points.
+// from https://gist.github.com/cdipaolo/d3f8db3848278b49db68
+
+// haversin(θ) function
+func hsin(theta float64) float64 {
+	return math.Pow(math.Sin(theta/2), 2)
+}
+
+// Distance function returns the distance (in meters) between two points of
+//     a given longitude and latitude relatively accurately (using a spherical
+//     approximation of the Earth) through the Haversin Distance Formula for
+//     great arc distance on a sphere with accuracy for small distances
+//
+// point coordinates are supplied in degrees and converted into rad. in the func
+//
+// distance returned is METERS
+// http://en.wikipedia.org/wiki/Haversine_formula
+func CalcGPSdistance(lat1, lon1, lat2, lon2 float64) float64 {
+	// convert to radians
+	// must cast radius as float to multiply later
+	var la1, lo1, la2, lo2, r float64
+	la1 = lat1 * math.Pi / 180
+	lo1 = lon1 * math.Pi / 180
+	la2 = lat2 * math.Pi / 180
+	lo2 = lon2 * math.Pi / 180
+
+	r = 6378100 // Earth radius in METERS
+
+	// calculate
+	h := hsin(la2-la1) + math.Cos(la1)*math.Cos(la2)*hsin(lo2-lo1)
+
+	return 2 * r * math.Asin(math.Sqrt(h))
 }
