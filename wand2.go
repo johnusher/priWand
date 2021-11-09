@@ -12,6 +12,9 @@
 
 // go run wand1.go -rasp-id=66 --web-addr :8082 -no-duino -no-batman -log-level debug
 
+// push from 4->3:
+// rsync -a wand2.go pi@192.168.1.166:code/go/src/github.com/johnusher/priWand/
+
 package main
 
 import (
@@ -345,6 +348,9 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 	accMessage := acc.ACCMessage{}
 	bcast := &net.UDPAddr{Port: batPort, IP: bcastIP}
 
+	crwt, _ := allPIs[raspID]
+	crwt.ButtonStatus = 0
+
 	more := false
 
 	for {
@@ -468,7 +474,7 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 			if messageType == messageTypeButton {
 				buttonStatus := message[8]
 				crwt.ButtonStatus = int64(buttonStatus)
-				log.Infof("buttonStatus: %v", buttonStatus) // 0 is button down, 1 is up
+				// log.Infof("buttonStatus: %v", buttonStatus) // 0 is button down, 1 is up
 			}
 
 			if messageType == messageTypeGPS {
@@ -513,10 +519,13 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 				log.Infof("  %s", v)
 			}
 
-			// if messageType == messageTypeGPS {
-			if messageType == messageTypeButton {
+			if messageType == messageTypeGPS {
+				// if messageType == messageTypeButton {
+
 				if self, ok := allPIs[raspID]; ok && len(allPIs) > 1 {
 					// we have >1 Pis, including ourself, find bearing and distance from local to each pi
+
+					log.Infof("buttonStatus: %v", self.ButtonStatus) // 0 is button down, 1 is up
 
 					// NB should we also do this when we have a new estimate for our local GPS location?
 
