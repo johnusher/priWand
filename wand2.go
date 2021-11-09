@@ -349,7 +349,7 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 	bcast := &net.UDPAddr{Port: batPort, IP: bcastIP}
 
 	crwt, _ := allPIs[raspID]
-	crwt.ButtonStatus = 0
+	crwt.ButtonStatus = 0 // init button status to button up: for some reason this should be a 1 for up but ...
 
 	more := false
 
