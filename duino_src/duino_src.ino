@@ -1,20 +1,21 @@
 /**
   Arduino code:
-  receive message on serial USB and change LEDs
+  For single programmable LED
+  receive message on serial USB and change LED
 
 */
 
 
 #include "ard_JU.h"
 
-#include "Adafruit_NeoPixel.h"   // NB this should be from https://github.com/adafruit/Adafruit_NeoPixel!
+#include "Adafruit_NeoPixel.h"   // from https://github.com/adafruit/Adafruit_NeoPixel
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(nLEDS, ledPin, NEO_GRB + NEO_KHZ800);
 
 void setup() {
   pinMode(ledPin, OUTPUT);
   strip.begin();
-  myStripShow(); // Initialize all pixels to 'off'
+  //  myStripShow(); // Initialize all pixels to 'off'
   // Serial.begin(9600);
   // Serial.begin(19200);
   Serial.begin(115200);
@@ -27,79 +28,35 @@ void setup() {
 */
 void loop() {
 
-  // Serial.print("S");
-
-  // for (i = 0; i < strip.numPixels(); i++) {
-  //   strip.setPixelColor(i, idleColR, idleColG, idleColB, 0);
-  //   //    strip.setPixelColor(i, 0, 0, 0, 127);
-  //   myStripShow();
-  //   // Serial.print("x");
-  //   //        tone(buzzer, i + j); // Send xm sound signal...
-
-  // }
-
-  idleC = 0;
   while (Serial.available() == 0) {
+    strip.setPixelColor(0, 1 * brightness, 0, 0);
+    strip.show();
+    idleC = 0;
 
-    // waiting for serial command
-    idleC = idleC + 1;
-    idleC = idleC % strip.numPixels();
 
-    // if(idleC==strip.numPixels()){
-    // colC = colC + 1;
-    // colC = colC % 127;
+    for (i = 0; i < 65530; i++) {
+      checkSerialInput();
+    }
 
-    // // change color:
-    //   uint8_t idleColR = 0; 	// colour of idle
-    //   uint8_t idleColG = 64%colC;
-    //   uint8_t idleColB = 127%colC;
+    strip.setPixelColor(0, 0, 1 * brightness, 0);
+    strip.show();
 
-    // }
 
-    strip.setPixelColor(idleC, idleColR, idleColG, idleColB);  // show blue light moving along
-
-    if (breakFlag == 0) {
-
-      myStripShow();
-
-      for (i = 0; i < 1000; i++) {
-        checkSerialInput();
-
-      }
+    for (i = 0; i < 65530; i++) {
+      checkSerialInput();
 
     }
 
-    else
-    {
-      idleC = 0;
+    strip.setPixelColor(0, 0, 0, 1 * brightness);
+    strip.show();
 
+
+    for (i = 0; i < 65530; i++) {
+      checkSerialInput();
     }
-
-
-    breakFlag = 0;
-
-    // strip.setPixelColor(idleC, idleColR, idleColG, idleColB);
-    // myStripShow();
-
-    //
-    //    // rainbow:
-    //    for (j = 0; j < maxC; j++) {
-    //      for (i = 0; i < strip.numPixels(); i++) {
-    //        strip.setPixelColor(i, Wheel((i + j) & (maxC-1)));
-    //        // Serial.print("x");
-    //        //        tone(buzzer, i + j); // Send xm sound signal...
-    //
-    //      }
-    //      //      myStripShow();
-    //      myStripShow();
-    ////      delay(5);
-    //    }
-
 
 
   }
-
-  checkSerialInput();
 
 
 
@@ -118,65 +75,118 @@ void loop() {
 
 
 void checkSerialInput() {
-  idle_flag = 0;
-  strip.clear();
+
+
+
+  //  https://forum.arduino.cc/t/split-string-by-delimiters/373124/3
+
+//  or here:
+//  https://forum.arduino.cc/t/splitting-up-a-string-with-a-delimiter-and-storing-each-cut-in-an-array/628574
+
+  // input message is delimited with semi colon and termniated with newline
+  // must begin with a 0
+
+  //  idle_flag = 0;
+  //  strip.clear();
   serial_in = Serial.read();
 
-  // say what you got:
-  //  Serial.print(serial_in);
-  //  Serial.flush();
+  if (serial_in == -1) {
+    //    empty
+    return;
+
+  }
+
+  // read in semi-colon delimited message
+  serialResponse  = Serial.readStringUntil('\r\n');
+
+
+  // Convert from String Object to String.
+  char buf[sizeof(sz)];
+  serialResponse.toCharArray(buf, sizeof(buf));
+  char *p = buf;
+  char *str;
+  i=0;
+  while ((str = strtok_r(p, ";", &p)) != NULL){ // delimiter is the semicolon
+    Serial.println(str);
+    buf[i] = str;
+    i=i+1;
+  }
+  i=i-1;
 
   if (serial_in == '0') {
-    SMode = 0;
-    Serial.println("mode 0");
-    Serial.flush();
-    Serial.println("a");
 
-    idleC = 128;
-    idleColR = 0;
-    idleColG = 0;
-    idleColB = 128;
-
-
-    strip.setPixelColor(idleC, idleColR, idleColG, idleColB);  // show blue light moving along
-    Serial.println("b");
-
-
+    // code 0 = solid
+//    Serial.println(serial_in);
+    idleColR = buf[0];
+    idleColG = buf[1];
+    idleColB = buf[2];
+    Serial.println("colours");
+    Serial.println(buf[0]);
+    Serial.println(idleColG);
+    Serial.println(idleColB);
     
-//    if (breakFlag == 1) {
-//      //    colorWipe(strip.Color(0, 0 , 0), 50); // off
-//      Serial.println("c");
-//    }
-//    else {
-//      wipeReverse = !wipeReverse;
-//      Serial.println("d");
-//    }
-//    Serial.println("e");
-    breakFlag = 0;
-    idleC = 0;
+  }
+
+//  mode 1= solid flash
+//  colour A
+//  flash interval
+
+
+  //  messSize = strlen(serial_in);
+
+  //  Serial.println(messSize);
+
+  // say what you got:
+  if (messSize > 2) {
+
+    //     Serial.println(messSize);
+    ////    Serial.println(serial_in);
+    ////    Serial.println(messSize);
+    //
+    ////    Serial.flush();
 
   }
 
-  else if (serial_in == '1') {
-    SMode = 1;
-    Serial.println("mode 1");
-    Serial.flush();
-
-    colorWipe(strip.Color(0, 0 , maxC ), 25); // g
-    Serial.print("breakFlag = ");
-    Serial.println(breakFlag);
-
-
-    if (breakFlag == 1) {
-      colorWipe(strip.Color(0, 0 , 0), 50); // off
-    }
-    else {
-      wipeReverse = !wipeReverse;
-    }
-    breakFlag = 0;
-    idleC = 0;
-
-  }
+  //  if (serial_in == '0') {
+  //    SMode = 0;
+  //    Serial.println("mode 0");
+  //    Serial.flush();
+  //    Serial.println("a");
+  //
+  //    idleC = 128;
+  //    idleColR = 0;
+  //    idleColG = 0;
+  //    idleColB = 128;
+  //
+  //    strip.setPixelColor(idleC, idleColR, idleColG, idleColB);  // show blue light moving along
+  //    Serial.println("b");
+  //
+  //
+  //    breakFlag = 0;
+  //    idleC = 0;
+  //
+  //  }
+  //
+  //  else if (serial_in == '1') {
+  //    SMode = 1;
+  //    Serial.println("mode 1");
+  //    Serial.flush();
+  //
+  //    colorWipe(strip.Color(0, 0 , maxC ), 25); // g
+  //    Serial.print("breakFlag = ");
+  //    Serial.println(breakFlag);
+  //
+  //
+  //    if (breakFlag == 1) {
+  //      colorWipe(strip.Color(0, 0 , 0), 50); // off
+  //    }
+  //    else {
+  //      wipeReverse = !wipeReverse;
+  //    }
+  //    breakFlag = 0;
+  //    idleC = 0;
+  //
+  //  }
 
 
 
@@ -187,7 +197,7 @@ void myStripShow() {
     checkSerialInput();
     breakFlag = 1;
   }
-  strip.show();
+  //  strip.show();
 }
 
 
