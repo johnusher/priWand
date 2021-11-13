@@ -3,6 +3,9 @@
   For single programmable LED
   receive message on serial USB and change LED
 
+  To program ATmega328P:
+  Select "Arduino Duemilanove and proc 328P
+
   serial messages should be semi-colon delimited
   eg 0;20;40;10
   first value is mode
@@ -145,7 +148,7 @@ void checkSerialInput() {
 }
 
 void mode0() {
-  Serial.println("mode 0");
+//  Serial.println("mode 0");
   // solid
 
     ColR = data[1] ;
@@ -166,7 +169,7 @@ void mode0() {
 }
 
 void mode1() {
-  Serial.println("mode 1");
+//  Serial.println("mode 1");
   // flash
 
     ColR = data[1] ;
@@ -213,7 +216,7 @@ void mode1() {
 
 
 void mode2() {
-  Serial.println("mode 2");
+//  Serial.println("mode 2");
   // flash random
     onTime = data[1];
     offTime = data[2];
@@ -243,7 +246,7 @@ void mode2() {
 }
 
 void mode3() {
-  Serial.println("mode 3");
+//  Serial.println("mode 3");
   // fade rainbow
   // second argument should be 25 for fast fade
 
@@ -265,16 +268,16 @@ void mode3() {
 }
 
 void mode9() {
-  Serial.println("mode 9: adjust brightness");
+//  Serial.println("mode 9: adjust brightness");
 
   brightness = data[1];
 
-  Serial.println(brightness);
+//  Serial.println(brightness);
   //   Serial.println(Mode);
-  Serial.println();
+//  Serial.println();
 
   if (Mode == 0) {
-    Serial.println(Mode);
+//    Serial.println(Mode);
     Mode = 0;
     mode0();
   }
