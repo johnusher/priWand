@@ -1,25 +1,38 @@
 /**
   Arduino code:
-  receive message on serial USB and change LEDs
+  For single programmable LED
+  receive message on serial USB and change LED
+
+  To program ATmega328P:
+  Select "Arduino Duemilanove and proc 328P
+
+  serial messages should be semi-colon delimited
+  eg 0;20;40;10
+  first value is mode
+  mode 0 = solid [g r b]
+  mode 1 = flash [g r b onTime offTime]
+  mode 2 = random [not quite working]
+  mode 3 = rainbow fade,  second argument should be 25 for fast fade
+  mode 9 = set brightness (right shift amount of GRB)
 
 */
 
 
 #include "ard_JU.h"
 
-#include "Adafruit_NeoPixel.h"   // NB this should be from https://github.com/adafruit/Adafruit_NeoPixel!
+#include "Adafruit_NeoPixel.h"   // from https://github.com/adafruit/Adafruit_NeoPixel
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(nLEDS, ledPin, NEO_GRB + NEO_KHZ800);
 
 void setup() {
   pinMode(ledPin, OUTPUT);
   strip.begin();
-  myStripShow(); // Initialize all pixels to 'off'
+  //  myStripShow(); // Initialize all pixels to 'off'
   // Serial.begin(9600);
   // Serial.begin(19200);
   Serial.begin(115200);
 
-  idleCol =  strip.Color(idleColR, idleColG, idleColB);
+  //  idleCol =  strip.Color(ColG, ColR, ColB);
 }
 
 /**
@@ -27,240 +40,306 @@ void setup() {
 */
 void loop() {
 
-  // Serial.print("S");
-
-  // for (i = 0; i < strip.numPixels(); i++) {
-  //   strip.setPixelColor(i, idleColR, idleColG, idleColB, 0);
-  //   //    strip.setPixelColor(i, 0, 0, 0, 127);
-  //   myStripShow();
-  //   // Serial.print("x");
-  //   //        tone(buzzer, i + j); // Send xm sound signal...
-
-  // }
-
-  idleC = 0;
   while (Serial.available() == 0) {
+    strip.setPixelColor(0, 255 >> brightness, 0, 0);
+    strip.show();
 
-    // waiting for serial command
-    idleC = idleC + 1;
-    idleC = idleC % strip.numPixels();
+    for (i = 0; i < 65530; i++) {
+      checkSerialInput();
+    }
+    strip.setPixelColor(0, 0, 255 >> brightness, 0);
+    strip.show();
 
-    // if(idleC==strip.numPixels()){
-    // colC = colC + 1;
-    // colC = colC % 127;
-
-    // // change color:
-    //   uint8_t idleColR = 0; 	// colour of idle
-    //   uint8_t idleColG = 64%colC;
-    //   uint8_t idleColB = 127%colC;
-
-    // }
-
-    strip.setPixelColor(idleC, idleColR, idleColG, idleColB);  // show blue light moving along
-
-    if (breakFlag == 0) {
-
-      myStripShow();
-
-      for (i = 0; i < 1000; i++) {
-        checkSerialInput();
-
-      }
-
+    for (i = 0; i < 65530; i++) {
+      checkSerialInput();
     }
 
-    else
-    {
-      idleC = 0;
+    strip.setPixelColor(0, 0, 0, 255 >> brightness);
+    strip.show();
 
+    for (i = 0; i < 65530; i++) {
+      checkSerialInput();
     }
-
-
-    breakFlag = 0;
-
-    // strip.setPixelColor(idleC, idleColR, idleColG, idleColB);
-    // myStripShow();
-
-    //
-    //    // rainbow:
-    //    for (j = 0; j < maxC; j++) {
-    //      for (i = 0; i < strip.numPixels(); i++) {
-    //        strip.setPixelColor(i, Wheel((i + j) & (maxC-1)));
-    //        // Serial.print("x");
-    //        //        tone(buzzer, i + j); // Send xm sound signal...
-    //
-    //      }
-    //      //      myStripShow();
-    //      myStripShow();
-    ////      delay(5);
-    //    }
-
-
-
   }
 
-  checkSerialInput();
-
-
-
-
-
-  //  if (Serial.available() > 0) {
-  //    // read the incoming byte:
-  //    char c = Serial.read();
-  //
-  //    // say what you got:
-  //    Serial.print("I received: ");
-  //    Serial.println(c);
-  //  }
 }
 
 
 
 void checkSerialInput() {
-  idle_flag = 0;
-  strip.clear();
+
+  // expect a strong like 0,1,123,456,789*
+
+  //  https://forum.arduino.cc/t/split-string-by-delimiters/373124/3
+
+  //  or here:
+  //  https://forum.arduino.cc/t/splitting-up-a-string-with-a-delimiter-and-storing-each-cut-in-an-array/628574
+
+  // input message is delimited with semi colon and termniated with newline
+  // must begin with a 0
+
+  //  idle_flag = 0;
+  //  strip.clear();
   serial_in = Serial.read();
 
-  // say what you got:
-  //  Serial.print(serial_in);
-  //  Serial.flush();
+
+  if (serial_in == -1) {
+    //    empty
+    return;
+
+  }
+
+  serialResponse = Serial.readStringUntil('\r\n');
+  //  Serial.println(serialResponse);
+
+  // Convert from String Object to String.
+  char buf[sizeof(sz)];
+  serialResponse.toCharArray(buf, sizeof(buf));
+  char *p = buf;
+  char *str;
+  i = 1;
+  while ((str = strtok_r(p, ";", &p)) != NULL) { // delimiter is the semicolon
+    //    Serial.println(str);
+    strings[i] = str;
+    i = i + 1;
+  }
+  i = i - 1;
+
+  //  Serial.println("i:");
+  //  Serial.println(i);
+
+  for (j = 1; j < i + 1; j++) {
+    //      Serial.println("j:");
+    data[j] = String(strings[j]).toInt();
+    //    Serial.print("a:");
+    //    Serial.println(strings[j] );
+    //    Serial.print("b:");
+    //    Serial.println(data[j] );
+    //    Serial.println();
+  }
 
   if (serial_in == '0') {
-    SMode = 0;
-    Serial.println("mode 0");
-    Serial.flush();
-    Serial.println("a");
+    Mode = 0;
+    mode0();
+  }
 
-    idleC = 128;
-    idleColR = 0;
-    idleColG = 0;
-    idleColB = 128;
+  if (serial_in == '1') {
+    Mode = 1;
+    mode1();
+  }
 
+  if (serial_in == '2') {
+    Mode = 2;
+    mode2();
+  }
 
-    strip.setPixelColor(idleC, idleColR, idleColG, idleColB);  // show blue light moving along
-    Serial.println("b");
+  if (serial_in == '3') {
+    Mode = 3;
+    mode3();
+  }
 
+  if (serial_in == '9') {
+    Mode = 9;
+    mode9();
+  }
 
+  return;
+
+}
+
+void mode0() {
+//  Serial.println("mode 0");
+  // solid
+
+    ColR = data[1] ;
+    ColG = data[2] ;
+    ColB = data[3] ;
+
+  while (Serial.available() == 0) {
+
+    strip.setPixelColor(0, ColG>> brightness, ColR>> brightness, ColB>> brightness);
+    strip.show();
+
+    for (i = 0; i < 65530; i++) {
+      checkSerialInput();
+    }
+
+  }
+
+}
+
+void mode1() {
+//  Serial.println("mode 1");
+  // flash
+
+    ColR = data[1] ;
+    ColG = data[2] ;
+    ColB = data[3];
+
+    onTime = data[4];
+    offTime = data[5];
     
-//    if (breakFlag == 1) {
-//      //    colorWipe(strip.Color(0, 0 , 0), 50); // off
-//      Serial.println("c");
-//    }
-//    else {
-//      wipeReverse = !wipeReverse;
-//      Serial.println("d");
-//    }
-//    Serial.println("e");
-    breakFlag = 0;
-    idleC = 0;
+  while (Serial.available() == 0) {
+
+//    Serial.println(brightness);
+//    Serial.println("");
+
+
+    //    Serial.print("ColG:");
+    //    Serial.println(ColG);
+    //     Serial.print("ColR:");
+    //    Serial.println(ColR);
+    //     Serial.print("ColB:");
+    //    Serial.println(ColB);
+
+    strip.setPixelColor(0, ColG>> brightness, ColR>> brightness, ColB>> brightness);
+    strip.show();
+
+    for (i = 0; i < onTime; i++) {
+      for (j = 0; j < onTime; j++) {
+        checkSerialInput();
+      }
+    }
+
+    strip.setPixelColor(0, 0, 0, 0);
+    strip.show();
+
+    for (i = 0; i < offTime; i++) {
+      for (j = 0; j < offTime; j++) {
+        checkSerialInput();
+      }
+    }
 
   }
-
-  else if (serial_in == '1') {
-    SMode = 1;
-    Serial.println("mode 1");
-    Serial.flush();
-
-    colorWipe(strip.Color(0, 0 , maxC ), 25); // g
-    Serial.print("breakFlag = ");
-    Serial.println(breakFlag);
-
-
-    if (breakFlag == 1) {
-      colorWipe(strip.Color(0, 0 , 0), 50); // off
-    }
-    else {
-      wipeReverse = !wipeReverse;
-    }
-    breakFlag = 0;
-    idleC = 0;
-
-  }
-
-
 
 }
 
-void myStripShow() {
-  if (Serial.available() > 0) {
-    checkSerialInput();
-    breakFlag = 1;
+
+void mode2() {
+//  Serial.println("mode 2");
+  // flash random
+    onTime = data[1];
+    offTime = data[2];
+    
+  while (Serial.available() == 0) {
+
+    for (k = 1; k < 97; k++) {
+      ColR = (k & 1) << 16;
+      ColG = (k & 2) << 8;
+      ColB = k & 4 << 4;
+      strip.setPixelColor(0, ColR >> brightness, ColG >> brightness, ColB >> brightness);
+      strip.show();
+      for (i = 0; i < onTime; i++) {
+        for (j = 0; j < onTime; j++) {
+          checkSerialInput();
+        }
+      }
+      strip.setPixelColor(0, 0, 0, 0);
+      strip.show();
+      for (i = 0; i < offTime; i++) {
+        for (j = 0; j < offTime; j++) {
+          checkSerialInput();
+        }
+      }
+    }
   }
+}
+
+void mode3() {
+//  Serial.println("mode 3");
+  // fade rainbow
+  // second argument should be 25 for fast fade
+
+  onTime = data[1];
+  while (Serial.available() == 0) {
+    
+    for (int k = 0; k < 360; k++)
+    {
+      trueHSV(0, k);
+
+      for (i = 0; i < onTime; i++) {
+        for (j = 0; j < onTime; j++) {
+          checkSerialInput();
+        }
+      }
+    }
+  }
+
+}
+
+void mode9() {
+//  Serial.println("mode 9: adjust brightness");
+
+  brightness = data[1];
+
+//  Serial.println(brightness);
+  //   Serial.println(Mode);
+//  Serial.println();
+
+  if (Mode == 0) {
+//    Serial.println(Mode);
+    Mode = 0;
+    mode0();
+  }
+
+  if (Mode == 1) {
+    Mode = 1;
+    mode1();
+  }
+
+  if (Mode == 2) {
+    Mode = 2;
+    mode2();
+  }
+
+  if (Mode == 3) {
+    Mode = 3;
+    mode3();
+  }
+
+  return;
+
+}
+
+
+// the real HSV rainbow
+void trueHSV(byte LED, int angle)
+{
+  byte red, green, blue;
+
+  if (angle < 60) {
+    red = 255;
+    green = HSVlights[angle];
+    blue = 0;
+  } else if (angle < 120) {
+    red = HSVlights[120 - angle];
+    green = 255;
+    blue = 0;
+  } else if (angle < 180) {
+    red = 0, green = 255;
+    blue = HSVlights[angle - 120];
+  } else if (angle < 240) {
+    red = 0, green = HSVlights[240 - angle];
+    blue = 255;
+  } else if (angle < 300) {
+    red = HSVlights[angle - 240], green = 0;
+    blue = 255;
+  } else
+  {
+    red = 255, green = 0;
+    blue = HSVlights[360 - angle];
+  }
+  setRGBpoint(red, green, blue);
+}
+
+void setRGBpoint(uint8_t red, uint8_t green, uint8_t blue)
+{
+  // this code is for common anode LEDs. If you use common cathode ones,
+  // remove the '255-' bits.
+  //  analogWrite(outputPins[LED*3], 255-red);
+  //  analogWrite(outputPins[LED*3+1], 255-green);
+  //  analogWrite(outputPins[LED*3+2], 255-blue);
+
+  strip.setPixelColor(0, green >> brightness, red >> brightness, blue >> brightness);
   strip.show();
-}
-
-
-// Fill the dots one after the other with a color
-void colorWipe(uint32_t c, uint8_t wait) {
-
-  breakFlag = 0;
-  if (wipeReverse)
-  {
-    for (uint16_t i = 0; i < strip.numPixels(); i++) {
-      strip.setPixelColor(i, c);
-      //      tone(buzzer, i ); // Send 1KHz sound signal...
-      myStripShow();
-      if (breakFlag == 1) {
-        break;
-      }
-      else {
-        delay(wait);
-      }
-    }
-  }
-  else
-  {
-    for (uint16_t i = 0; i < strip.numPixels(); i++) {
-      strip.setPixelColor(strip.numPixels() - i, c);
-      //      tone(buzzer, i XI); // Send 1KHz sound signal...
-
-      myStripShow();
-      if (breakFlag == 1) {
-        break;
-      }
-      else {
-        delay(wait);
-      }
-    }
-  }
-
-  wipeReverse = !wipeReverse;
-
-
-  //  noTone(buzzer);     // Stop sound...
-
-
-}
-
-
-// Slightly different, this makes the rainbow equally distributed throughout
-void rainbowCycle(uint8_t wait) {
-  uint16_t i, j;
-
-  for (j = 0; j < 256 * 5; j++) { // 5 cycles of all colors on wheel
-    for (i = 0; i < strip.numPixels(); i++) {
-      strip.setPixelColor(i, Wheel(((i * 256 / strip.numPixels()) + j) & 255));
-
-      //     tone(buzzer, i + j); // Send xm sound signal...
-
-    }
-    myStripShow();
-    delay(wait);
-  }
-
-}
-
-// Input a value 0 to 255 to get a color value.
-// The colours are a transition r - g - b - back to r.
-uint32_t Wheel(byte WheelPos) {
-  if (WheelPos < 85) {
-    return strip.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
-  } else if (WheelPos < 170) {
-    WheelPos -= 85;
-    return strip.Color(255 - WheelPos * 3, 0, WheelPos * 3);
-  } else {
-    WheelPos -= 170;
-    return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
-  }
 }
