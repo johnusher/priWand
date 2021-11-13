@@ -7,6 +7,7 @@ require (
 	github.com/gordonklaus/portaudio v0.0.0-20200911161147-bb74aa485641
 	github.com/gorilla/websocket v1.4.2
 	github.com/jacobsa/go-serial v0.0.0-20180131005756-15cf729a72d4
+	github.com/johnusher/ardpifi v0.0.0-20211018195758-cf90fa879ec8 // indirect
 	github.com/kpeu3i/bno055 v1.0.3
 	github.com/nsf/termbox-go v1.1.1
 	github.com/sirupsen/logrus v1.8.1

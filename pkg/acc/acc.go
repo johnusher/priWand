@@ -120,13 +120,24 @@ func initACC(accChan chan<- ACCMessage) (ACC, error) {
 	//
 	// 15=0x0F = all good!
 
-	_, err = sensor.AxisConfig()
+	// err = sensor.EsetOperationMode(0x08)
+	err = sensor.EsetOperationMode(0x0C) // fast mag cal
+
+	axisConfig, err := sensor.AxisConfig()
+	if err != nil {
+		panic(err)
+	}
+
+	// log.Infof("axisConfig: %v", axisConfig)
+
+	// remap axis with X axis in poitning direction, this is placement P0
+	err = sensor.RemapAxis(axisConfig)
 	if err != nil {
 		panic(err)
 	}
 
 	// enter loop to calibrate
-	// time-ut after 2 secs
+	// time-out after 2 secs
 	var (
 		isCalibrated       bool
 		calibrationOffsets bno055_2.CalibrationOffsets
@@ -178,9 +189,6 @@ func initACC(accChan chan<- ACCMessage) (ACC, error) {
 	}
 
 	fmt.Printf("*** Done! Calibration offsets: %v\n", calibrationOffsets)
-
-	// err = sensor.EsetOperationMode(0x08)
-	err = sensor.EsetOperationMode(0x0C) // fast mag cal
 
 	if err != nil {
 		panic(err)

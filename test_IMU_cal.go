@@ -8,8 +8,18 @@ import (
 	"time"
 
 	"github.com/johnusher/priWand/pkg/bno055_2"
+	log "github.com/sirupsen/logrus"
 	// "github.com/kpeu3i/bno055"
 )
+
+type AxisConfig struct {
+	X     byte
+	Y     byte
+	Z     byte
+	SignX byte
+	SignY byte
+	SignZ byte
+}
 
 func main() {
 	sensor, err := bno055_2.NewSensor(0x28, 3)
@@ -35,6 +45,56 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	axisConfig, err := sensor.AxisConfig()
+	if err != nil {
+		panic(err)
+	}
+
+	log.Infof("axisConfig: %v", axisConfig)
+
+	err = sensor.RemapAxis(axisConfig)
+	if err != nil {
+		panic(err)
+	}
+	// log.Infof("mm: %v", mm)
+
+	// mm, err := axis_config.Mappings(0x04)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// log.Infof("mm: %v", mm)
+
+	// mappings := 0x04
+	// mappings |= (c.Z & 0x03) << 4
+	// mappings |= (c.Y & 0x03) << 2
+	// mappings |= c.X & 0x03
+	// log.Infof("mappings: %v", mm)
+
+	// mm, err := sensor.AxisConfig()
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// log.Infof("mm2: %v", mm)
+
+	fmt.Printf("*** Done! Calibration offsets: %v\n", calibrationOffsets)
+
+	// err = sensor.RemapAxis(0x0C)
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// err = sensor.bus.Write(bno055AxisMapConfig, config.Mappings())
+	// if err != nil {
+	// 	return err
+	// }
+
+	// // here we set the sign
+	// err =sensor.bus.Write(bno055AxisMapSign, config.Signs())
+	// if err != nil {
+	// 	return err
+	// }
 
 	// fmt.Printf("*** OG Calibration offsets: %v\n", bno055_2.CalibrationOffsets)
 

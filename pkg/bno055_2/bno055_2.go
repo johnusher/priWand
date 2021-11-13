@@ -300,15 +300,20 @@ func (s *Sensor) AxisConfig() (*AxisConfig, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	mapConfig, err := s.bus.Read(bno055AxisMapConfig)
-	if err != nil {
-		return nil, err
-	}
+	// mapConfig, err := s.bus.Read(bno055AxisMapConfig)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	signConfig, err := s.bus.Read(bno055AxisMapSign)
-	if err != nil {
-		return nil, err
-	}
+	// // fmt.Printf("***mapConfig: %v\n", mapConfig)
+
+	// signConfig, err := s.bus.Read(bno055AxisMapSign)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	var mapConfig byte = 0x21
+	var signConfig byte = 0x04
 
 	axisConfig := newAxisConfig(mapConfig, signConfig)
 
@@ -575,6 +580,18 @@ func (s *Sensor) EsetOperationMode(mode byte) error {
 	}
 
 	s.opMode = mode
+
+	return nil
+}
+
+func (s *Sensor) WriteMappings(mappings byte) error {
+
+	err := s.bus.Write(bno055AxisMapConfig, mappings)
+	if err != nil {
+		return err
+	}
+
+	// s.opMode = mode
 
 	return nil
 }
