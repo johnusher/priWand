@@ -839,9 +839,9 @@ func findArduino() string {
 	// Look for what is mostly likely the Arduino device
 	// NB this is kinda janky- we should have a system to robustly detect a duino, eg if we dont find one, then re-insert the duino USb cable and note which ports are new
 
-	// JU: on my RASPI the legit Aurdion Uno shows in ttyACM0, but my fake nano +CH340-Chip shows on ttyUSB0
+	// on my RASPI the legit Aurdion Uno shows in ttyACM0, but my fake nano +CH340-Chip shows on ttyUSB0
 	for _, f := range contents {
-		if strings.Contains(f.Name(), "ttyUSB") || strings.Contains(f.Name(), "ttyACM0") {
+		if strings.Contains(f.Name(), "ttyUSB0") || strings.Contains(f.Name(), "ttyUSB") || strings.Contains(f.Name(), "ttyACM0") {
 			fmt.Println("Duino found at /dev/", f.Name())
 			return "/dev/" + f.Name()
 		}
