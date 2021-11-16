@@ -5,8 +5,8 @@
 // serial messages should be semi-colon delimited
 // eg 0;20;40;10
 // first value is mode
-// mode 0 = solid [g r b]
-// mode 1 = flash [g r b onTime offTime]
+// mode 0 = solid [r g b]
+// mode 1 = flash [r g b onTime offTime]
 // mode 2 = random [not quite working]
 // mode 3 = rainbow fade,  second argument should be 25 for fast fade
 // mode 9 = set brightness (right shift amount of GRB)
@@ -79,7 +79,7 @@ func main() {
 	_, err = duino.Write([]byte(duinoMessage))
 
 	if err != nil {
-		log.Errorf("3. failed to write to serial port: %s", err)
+		log.Errorf("3. failed to write to duino: %s", err)
 		//return err
 	}
 	duino.Flush()

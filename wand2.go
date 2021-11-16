@@ -10,7 +10,7 @@
 
 // key press Q to quit
 
-// go run wand1.go -rasp-id=66 --web-addr :8082 -no-duino -no-batman -log-level debug
+// pi4: go run wand2.go -rasp-id=67 --web-addr :8082 -no-batman -log-level debug
 
 // push from 4->3:
 // rsync -a wand2.go pi@192.168.1.166:code/go/src/github.com/johnusher/priWand/
@@ -202,6 +202,29 @@ func main() {
 	// When connecting to an older revision Arduino, you need to wait
 	time.Sleep(1 * time.Second)
 
+	//duinoMessage := "3;25\n" // mode 3 = rainbow fade, speed=25
+
+	duinoMessage := "9;2\n" // increase brightness [mdoe 9, codeload = right shift]
+	// write to duino:
+	duino.Flush()
+	_, err = duino.Write([]byte(duinoMessage))
+	if err != nil {
+		log.Errorf("3. failed to write to serial port: %s", err)
+		//return err
+	}
+	duino.Flush()
+	duinoMessage = "3;5\n" // mode 3 = rainbow fade, speed=25
+	// duinoMessage = "1;255;16;240;100;50\n" // mode 1 = flash solid colour, RGB, ontime = 350, offtime = 250
+	// duinoMessage := "9;4\n" // increase brightness [mdoe 9, codeload = right shift]
+	// write to duino:
+	duino.Flush()
+	_, err = duino.Write([]byte(duinoMessage))
+	if err != nil {
+		log.Errorf("3. failed to write to serial port: %s", err)
+		//return err
+	}
+	duino.Flush()
+
 	// Setup keyboard input:
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
@@ -282,6 +305,15 @@ func main() {
 	go bm.Run()
 	go g.Run()
 	go a.Run()
+
+	// show slow rainbow as default when no button pressed
+	duinoMessage = "3;125\n" // mode 3 = rainbow fade, speed=25
+	duino.Flush()
+	_, err = duino.Write([]byte(duinoMessage))
+	if err != nil {
+		log.Errorf("3. failed to write to serial port: %s", err)
+	}
+	duino.Flush()
 
 	gp.PlayWav("hello.wav") // play wav
 
@@ -433,23 +465,26 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 					if messageType == messageTypeDuino {
 
 						// duino command: send straight to duino
-						// first unpack the message:
-						duinoMessage := message[8] // we should maybe look at total message legnth and combine other bytes if longer than 7
 
+						// duinoMessage := "0;255;255;64\n" ///c change to solid colour
+						// duinoMessage = "3;125\n" // mode 3 = rainbow fade, speed=25
+						duinoMessage := "1;255;0;0;200;75\n" // mode 1 = flash solid colour, RGB, ontime = 350, offtime = 250
+						// duinoMessage := "9;4\n" // increase brightness [mdoe 9, codeload = right shift]
 						// write to duino:
 						duino.Flush()
-						_, err := duino.Write([]byte(string(duinoMessage)))
-
+						_, err := duino.Write([]byte(duinoMessage))
 						if err != nil {
 							log.Errorf("3. failed to write to serial port: %s", err)
-							//return err
 						}
 						duino.Flush()
 
-						log.Infof("key from other %s \n", (string(duinoMessage)))
+						// first unpack the message:
+						duinoMessagek := message[8] // we should maybe look at total message legnth and combine other bytes if longer than 7
+
+						log.Infof("key from other %s \n", (string(duinoMessagek)))
 
 						// OLED display:
-						OLEDmsg := fmt.Sprintf("received:  %s", (string(duinoMessage)))
+						OLEDmsg := fmt.Sprintf("received:  %s", (string(duinoMessagek)))
 						oled.ShowText(img, 2, OLEDmsg)
 
 						// now we want to play wav
@@ -693,6 +728,14 @@ func broadcastLoop(keys <-chan rune, gpsCh <-chan gps.GPSMessage, duino port.Por
 			// buttonStatus := gpio.GPIOMessage.buttonFlag
 			if buttonStatus == 0 {
 				// button down
+				duinoMessage := "0;176;38;255\n" ///c change to solid colour
+				duino.Flush()
+				_, err := duino.Write([]byte(duinoMessage))
+				if err != nil {
+					log.Errorf("failed to write to duino: %s", err)
+				}
+				duino.Flush()
+
 				// log.Infof("button down %v", buttonStatus)
 				// buttonDown = true
 				n = 0
@@ -701,6 +744,13 @@ func broadcastLoop(keys <-chan rune, gpsCh <-chan gps.GPSMessage, duino port.Por
 
 			if buttonStatus == 1 {
 				// button up
+				duinoMessage := "3;125\n" // mode 3 = rainbow fade, speed=25
+				duino.Flush()
+				_, err := duino.Write([]byte(duinoMessage))
+				if err != nil {
+					log.Errorf("3. failed to write to duino: %s", err)
+				}
+				duino.Flush()
 				// log.Infof("button up %v", buttonStatus)
 				// buttonDown = false
 
@@ -712,6 +762,13 @@ func broadcastLoop(keys <-chan rune, gpsCh <-chan gps.GPSMessage, duino port.Por
 
 				} else {
 					log.Printf("shorty")
+					duinoMessage := "3;125\n" // mode 3 = rainbow fade, speed=25
+					duino.Flush()
+					_, err := duino.Write([]byte(duinoMessage))
+					if err != nil {
+						log.Errorf("3. failed to write to duino: %s", err)
+					}
+					duino.Flush()
 				}
 
 			}
