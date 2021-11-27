@@ -62,7 +62,7 @@ import (
 )
 
 const (
-	bearingThreshold = 10 // value in degrees. if we are within eg 10 degrees pointing at another, then consider it a lock on
+	bearingThreshold = 40 // value in degrees. if we are within eg 40 degrees pointing at another, then consider it a lock on
 	batPort          = 4200
 	// msgSize   = net.IPv4len + 4 // IP + uint32
 	interval  = 1 * time.Second
