@@ -10,8 +10,9 @@
 #   sudo make install
 # )
 
+echo Raspi4 167
 #echo waiting 20 secs
-#sleep 20s
+sleep 5s
 # Activate batman-adv
 sudo modprobe batman-adv
 echo 1
@@ -49,9 +50,9 @@ sudo ifconfig bat0 172.27.0.1/16   # 172.27.0.x
 echo 11
 sudo iwconfig wlan0 ap CA:B4:54:B1:5A:75
 echo BATMAN loaded
-#sleep 10s
-#cd /home/pi/apl/
-#/home/pi/apl/JU_led_mesh -rasp-id=64 --web-addr :8080 -log-level debug
+sleep 10s
+cd /home/pi/pw4/
+/home/pi/pw4/wand2 -rasp-id=67 --web-addr :8080 -log-level debug
 #echo go app loaded
 # test batctl
 # sudo batctl o
