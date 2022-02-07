@@ -17,10 +17,10 @@ import (
 
 	// i2c "github.com/d2r2/go-i2c"
 
-	"github.com/johnusher/ardpifi/pkg/gps"
+	"github.com/johnusher/priWand/pkg/gps"
 
 	// "github.com/johnusher/ardpifi/pkg/lcd"
-	"github.com/johnusher/ardpifi/pkg/oled"
+	"github.com/johnusher/priWand/pkg/oled"
 
 	log "github.com/sirupsen/logrus"
 

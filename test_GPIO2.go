@@ -20,7 +20,7 @@ import (
 	// "os"
 	// "time"
 
-	"github.com/johnusher/ardpifi/pkg/gpio"
+	"github.com/johnusher/priWand/pkg/gpio"
 
 	log "github.com/sirupsen/logrus"
 )
