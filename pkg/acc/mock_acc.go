@@ -40,7 +40,7 @@ func (m *mockACC) Run() error {
 		case <-ticker.C:
 			// temp := rand.int32()
 			// temp := int8(27)
-			bearing := rand.Float64() * 360
+			// bearing := rand.Float64() * 360
 			roll := rand.Float64()
 			tilt := rand.Float64()
 
@@ -63,13 +63,13 @@ func (m *mockACC) Run() error {
 
 			m.acc <- ACCMessage{
 				// Temp:    temp,
-				Bearing: bearing,
-				Roll:    roll,
-				Tilt:    tilt,
-				QuatW:   quat_w,
-				QuatX:   quat_x,
-				QuatY:   quat_y,
-				QuatZ:   quat_z,
+				// Bearing: bearing,
+				Roll:  roll,
+				Tilt:  tilt,
+				QuatW: quat_w,
+				QuatX: quat_x,
+				QuatY: quat_y,
+				QuatZ: quat_z,
 			}
 
 			// m.acc2 <- ACCMessage2{

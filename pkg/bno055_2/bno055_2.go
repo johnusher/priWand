@@ -8,7 +8,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kpeu3i/bno055/i2c"
+	log "github.com/sirupsen/logrus"
+
+	// "github.com/kpeu3i/bno055/i2c"
+
+	"github.com/johnusher/priWand/pkg/bno055_2/i2c"
 )
 
 type Status struct {
@@ -643,6 +647,9 @@ func (s *Sensor) checkExists() error {
 }
 
 func (s *Sensor) init() error {
+
+	log.Infof("mmmmm!!")
+
 	err := s.checkExists()
 	if err != nil {
 		return err
@@ -695,10 +702,20 @@ func (s *Sensor) init() error {
 		return err
 	}
 
-	err = s.setOperationMode(bno055OperationModeNdof)
+	// err = s.setOperationMode(bno055OperationModeNdof)
+	// if err != nil {
+	// 	return err
+	// }
+
+	err = s.setOperationMode(bno055OperationModeImuplus)
 	if err != nil {
 		return err
 	}
+
+	// err = s.setOperationMode(bno055OperationModeM4g)
+	// if err != nil {
+	// 	return err
+	// }
 
 	err = s.Calibrate(defaultCalibrationOffsets)
 	if err != nil {
@@ -709,6 +726,9 @@ func (s *Sensor) init() error {
 }
 
 func (s *Sensor) Einit() error {
+
+	log.Infof("jjjjjjjjjj!!")
+
 	err := s.checkExists()
 	if err != nil {
 		return err
@@ -761,7 +781,12 @@ func (s *Sensor) Einit() error {
 		return err
 	}
 
-	err = s.setOperationMode(bno055OperationModeNdof)
+	// err = s.setOperationMode(bno055OperationModeNdof)
+	// if err != nil {
+	// 	return err
+	// }
+
+	err = s.setOperationMode(bno055OperationModeImuplus)
 	if err != nil {
 		return err
 	}

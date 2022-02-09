@@ -27,9 +27,9 @@ type ACC interface {
 
 type ACCMessage struct {
 	// Temp    int8
-	Bearing float64
-	Roll    float64
-	Tilt    float64
+	// Bearing float64
+	Roll float64
+	Tilt float64
 
 	QuatW float64
 	QuatX float64
@@ -78,12 +78,12 @@ func initACC(accChan chan<- ACCMessage) (ACC, error) {
 		panic(err)
 	}
 
-	status, err := sensor.Status()
-	if err != nil {
-		panic(err)
-	}
+	// status, err := sensor.Status()
+	// if err != nil {
+	// 	panic(err)
+	// }
 
-	fmt.Printf("*** ICU Status: system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
+	// fmt.Printf("*** ICU Status1: system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
 
 	// System Status (see section 4.3.58)
 	// ---------------------------------
@@ -121,12 +121,20 @@ func initACC(accChan chan<- ACCMessage) (ACC, error) {
 	// 15=0x0F = all good!
 
 	// err = sensor.EsetOperationMode(0x08)
-	err = sensor.EsetOperationMode(0x0C) // fast mag cal
+	//err = sensor.EsetOperationMode(0x0C) // fast mag cal NDOF bno055OprMode
+
+	//err = sensor.EsetOperationMode(0x05) // bno055OprMode is ACCGYRO = 0101 =0x5
+
+	err = sensor.EsetOperationMode(0x08) // bno055OprMode is IMUPLUS = 1000 =0x5
+
+	time.Sleep(100 * time.Millisecond)
 
 	axisConfig, err := sensor.AxisConfig()
 	if err != nil {
 		panic(err)
 	}
+
+	time.Sleep(100 * time.Millisecond)
 
 	// log.Infof("axisConfig: %v", axisConfig)
 
@@ -135,6 +143,15 @@ func initACC(accChan chan<- ACCMessage) (ACC, error) {
 	if err != nil {
 		panic(err)
 	}
+
+	time.Sleep(100 * time.Millisecond)
+
+	status, err := sensor.Status()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("*** ICU Status2: system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
 
 	// enter loop to calibrate
 	// time-out after 2 secs
@@ -222,7 +239,7 @@ func (a *acc) Run() error {
 				log.Errorf("acc error: %v", err)
 			}
 
-			bearing := float64(vector.X)
+			// bearing := float64(vector.X)
 			roll := float64(vector.Y)
 			tilt := float64(vector.Z)
 
@@ -269,13 +286,13 @@ func (a *acc) Run() error {
 
 			a.acc <- ACCMessage{
 				// Temp:    temp,
-				Bearing: bearing,
-				Roll:    roll,
-				Tilt:    tilt,
-				QuatW:   quat_w,
-				QuatX:   quat_x,
-				QuatY:   quat_y,
-				QuatZ:   quat_z,
+				//	Bearing: bearing,
+				Roll:  roll,
+				Tilt:  tilt,
+				QuatW: quat_w,
+				QuatX: quat_x,
+				QuatY: quat_y,
+				QuatZ: quat_z,
 			}
 
 			// a.acc2 <- ACCMessage2{

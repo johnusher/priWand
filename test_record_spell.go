@@ -23,17 +23,21 @@ import (
 	"image"
 	"io"
 	"os/exec"
+	"os/signal"
 	"runtime"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"math"
 	"os"
 	"time"
 
-	"github.com/johnusher/ardpifi/pkg/acc"
-	"github.com/johnusher/ardpifi/pkg/gpio"
-	"github.com/johnusher/ardpifi/pkg/oled"
+	"github.com/johnusher/priWand/pkg/acc"
+	"github.com/johnusher/priWand/pkg/gpio"
+	"github.com/johnusher/priWand/pkg/keyboard"
+	"github.com/johnusher/priWand/pkg/oled"
+
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/exp/io/i2c"
 
@@ -63,6 +67,18 @@ func main() {
 		return
 	}
 	log.SetLevel(level)
+
+	// Setup keyboard input:
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+
+	keys := make(chan rune)
+
+	kb, err := keyboard.Init(keys)
+	if err != nil {
+		log.Errorf("failed to initialize keyboard: %s", err)
+		return
+	}
 
 	// init TF/ Python
 
@@ -146,7 +162,7 @@ func main() {
 
 	// main loop here:
 	// go forth
-
+	go kb.Run()
 	go a.Run()
 
 	errs := make(chan error)
@@ -159,7 +175,7 @@ func main() {
 	img := image.NewRGBA(image.Rect(0, 0, 128, 64))
 
 	go func() {
-		errs <- GPIOLoop(gpioChan, accChan, img, oled, stdin, stdoutReader)
+		errs <- GPIOLoop(keys, gpioChan, accChan, img, oled, stdin, stdoutReader)
 	}()
 
 	// block until ctrl-c or one of the loops returns an error
@@ -169,7 +185,7 @@ func main() {
 
 }
 
-func GPIOLoop(gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc.ACCMessage, img *image.RGBA, oled oled.OLED, stdin io.WriteCloser, stdoutReader *bufio.Reader) error {
+func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc.ACCMessage, img *image.RGBA, oled oled.OLED, stdin io.WriteCloser, stdoutReader *bufio.Reader) error {
 	// log.Info("Starting GPIO loop")
 
 	gpioMessage := gpio.GPIOMessage{}
@@ -183,6 +199,18 @@ func GPIOLoop(gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc.ACCMessage, img *
 	for {
 
 		select {
+
+		case _, more := <-keys:
+			// received local key press
+			// todo: replace/ augment this with a GPIO button press
+
+			if !more {
+				// oled.ShowText(img, 2, fmt.Sprintf("exiting"))
+				log.Infof("keyboard listener closed\n")
+				// termbox closed, block until ctrl-c is called
+				log.Infof("exiting")
+				return nil
+			}
 
 		case accMessage, more = <-accCh:
 
