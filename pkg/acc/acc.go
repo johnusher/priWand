@@ -4,15 +4,13 @@ package acc
 
 import (
 	"fmt"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	// "github.com/kpeu3i/bno055"
 	log "github.com/sirupsen/logrus"
 
 	// "github.com/kpeu3i/bno055_2"
+	//"github.com/johnusher/ardpifi/pkg/bno055_2"
 	"github.com/johnusher/priWand/pkg/bno055_2"
 )
 
@@ -23,13 +21,14 @@ const (
 type ACC interface {
 	Run() error
 	Close() error
+	ResetAcc() error
 }
 
 type ACCMessage struct {
 	// Temp    int8
-	// Bearing float64
-	Roll float64
-	Tilt float64
+	Bearing float64
+	Roll    float64
+	Tilt    float64
 
 	QuatW float64
 	QuatX float64
@@ -78,134 +77,37 @@ func initACC(accChan chan<- ACCMessage) (ACC, error) {
 		panic(err)
 	}
 
-	// status, err := sensor.Status()
-	// if err != nil {
-	// 	panic(err)
-	// }
+	status, err := sensor.Status()
+	if err != nil {
+		panic(err)
+	}
 
-	// fmt.Printf("*** ICU Status1: system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
+	fmt.Printf("*** Statusx: system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
 
-	// System Status (see section 4.3.58)
-	// ---------------------------------
-	// 0 = Idle
-	// 1 = System Error
-	// 2 = Initializing Peripherals
-	// 3 = System Initialization
-	// 4 = Executing Self-Test
-	// 5 = Sensor fusion algorithm running
-	// 6 = System running without fusion algorithms
+	_, err = sensor.AxisConfig()
+	if err != nil {
+		panic(err)
+	}
 
-	// System Error (see section 4.3.59)
-	//---------------------------------
-	// 0 = No error
-	// 1 = Peripheral initialization error
-	// 2 = System initialization error
-	// 3 = Self test result failed
-	// 4 = Register map value out of range
-	// 5 = Register map address out of range
-	// 6 = Register map write error
-	// 7 = BNO low power mode not available for selected operation ion mode
-	// 8 = Accelerometer power mode not available
-	// 9 = Fusion algorithm configuration error
-	// A = Sensor configuration error
-
-	// Self Test Results
-	// --------------------------------
-	// 1 = test passed, 0 = test failed
-	//
-	// Bit 0 = Accelerometer self test
-	// Bit 1 = Magnetometer self test
-	// Bit 2 = Gyroscope self test
-	// Bit 3 = MCU self test
-	//
-	// 15=0x0F = all good!
+	// err = sensor.EsetOperationMode(0x08)
+	//err = sensor.EsetOperationMode(0x0C) // fast mag cal
 
 	// err = sensor.EsetOperationMode(0x08)
 	//err = sensor.EsetOperationMode(0x0C) // fast mag cal NDOF bno055OprMode
 
 	//err = sensor.EsetOperationMode(0x05) // bno055OprMode is ACCGYRO = 0101 =0x5
 
-	err = sensor.EsetOperationMode(0x08) // bno055OprMode is IMUPLUS = 1000 =0x5
+	err = sensor.EsetOperationMode(0x08) // bno055OprMode is IMUPLUS = 1000 =0x8
+	//err = sensor.EsetOperationMode(0x09) // bno055OprMode is compass = 1001 =0x9
+	// err = sensor.EsetOperationMode(0x0A) // bno055OprMode is M4G = 1010 =0xA
 
-	time.Sleep(100 * time.Millisecond)
-
-	axisConfig, err := sensor.AxisConfig()
+	//xxxxxxxxxxx
+	status, err = sensor.Status()
 	if err != nil {
 		panic(err)
 	}
-
-	time.Sleep(100 * time.Millisecond)
-
-	// log.Infof("axisConfig: %v", axisConfig)
-
-	// remap axis with X axis in poitning direction, this is placement P0
-	err = sensor.RemapAxis(axisConfig)
-	if err != nil {
-		panic(err)
-	}
-
-	time.Sleep(100 * time.Millisecond)
-
-	status, err := sensor.Status()
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Printf("*** ICU Status2: system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
-
-	// enter loop to calibrate
-	// time-out after 2 secs
-	var (
-		isCalibrated       bool
-		calibrationOffsets bno055_2.CalibrationOffsets
-		calibrationStatus  *bno055_2.CalibrationStatus
-	)
-
-	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
-
-	calTimeNow := time.Now()
-	calTimeNowNow := time.Now()
-
-	for !isCalibrated {
-		select {
-		case <-signals:
-			err := sensor.Close()
-			if err != nil {
-				panic(err)
-			}
-		default:
-			calibrationOffsets, calibrationStatus, err = sensor.Calibration()
-			if err != nil {
-				panic(err)
-			}
-
-			isCalibrated = calibrationStatus.IsCalibrated()
-
-			fmt.Printf(
-				"\r*** isCalibrated=%v: Calibration status (0..3): system=%v, accelerometer=%v, gyroscope=%v, magnetometer=%v",
-				isCalibrated,
-				calibrationStatus.System,
-				calibrationStatus.Accelerometer,
-				calibrationStatus.Gyroscope,
-				calibrationStatus.Magnetometer,
-			)
-
-			// fmt.Printf("Calibration offsets: %v\n", calibrationOffsets)
-		}
-
-		time.Sleep(100 * time.Millisecond)
-
-		calTimeNowNow = time.Now()
-
-		elapsedTime := calTimeNowNow.Sub(calTimeNow)
-
-		if elapsedTime > 2000*time.Millisecond {
-			isCalibrated = true
-		}
-	}
-
-	fmt.Printf("*** Done! Calibration offsets: %v\n", calibrationOffsets)
+	fmt.Printf("*** StatusYY: system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
+	//xxxxxxxxxxx
 
 	if err != nil {
 		panic(err)
@@ -218,6 +120,12 @@ func initACC(accChan chan<- ACCMessage) (ACC, error) {
 	}, nil
 
 }
+
+func (a *acc) ResetAcc() error {
+	return a.Sensor.EsetOperationMode(0x08)
+}
+
+// err = sensor.EsetOperationMode(0x08) // bno055OprMode is IMUPLUS = 1000 =0x8
 
 func (a *acc) Close() error {
 	return a.Sensor.Close()
@@ -239,7 +147,7 @@ func (a *acc) Run() error {
 				log.Errorf("acc error: %v", err)
 			}
 
-			// bearing := float64(vector.X)
+			bearing := float64(vector.X)
 			roll := float64(vector.Y)
 			tilt := float64(vector.Z)
 
@@ -286,13 +194,13 @@ func (a *acc) Run() error {
 
 			a.acc <- ACCMessage{
 				// Temp:    temp,
-				//	Bearing: bearing,
-				Roll:  roll,
-				Tilt:  tilt,
-				QuatW: quat_w,
-				QuatX: quat_x,
-				QuatY: quat_y,
-				QuatZ: quat_z,
+				Bearing: bearing,
+				Roll:    roll,
+				Tilt:    tilt,
+				QuatW:   quat_w,
+				QuatX:   quat_x,
+				QuatY:   quat_y,
+				QuatZ:   quat_z,
 			}
 
 			// a.acc2 <- ACCMessage2{
@@ -306,7 +214,6 @@ func (a *acc) Run() error {
 		}
 
 		time.Sleep(5 * time.Millisecond) // check this for TF model!
-		// todo: how to have different time for Bearing vs Quats
 	}
 
 }

@@ -5,14 +5,13 @@ package bno055_2
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
+	"github.com/kpeu3i/bno055/i2c"
+
 	log "github.com/sirupsen/logrus"
-
-	// "github.com/kpeu3i/bno055/i2c"
-
-	"github.com/johnusher/priWand/pkg/bno055_2/i2c"
 )
 
 type Status struct {
@@ -76,14 +75,9 @@ type Quaternion struct {
 	W float32
 }
 
-// var defaultCalibrationOffsets CalibrationOffsets = []byte{
-// 	239, 255, 184, 255, 10, 0, 196, 0, 193, 0,
-// 	85, 255, 128, 0, 0, 0, 1, 0, 232, 3, 0, 0,
-// }
-
 var defaultCalibrationOffsets CalibrationOffsets = []byte{
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 232, 3, 0, 0,
+	239, 255, 184, 255, 10, 0, 196, 0, 193, 0,
+	85, 255, 128, 0, 0, 0, 1, 0, 232, 3, 0, 0,
 }
 
 type I2CBus interface {
@@ -304,20 +298,15 @@ func (s *Sensor) AxisConfig() (*AxisConfig, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	// mapConfig, err := s.bus.Read(bno055AxisMapConfig)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	mapConfig, err := s.bus.Read(bno055AxisMapConfig)
+	if err != nil {
+		return nil, err
+	}
 
-	// // fmt.Printf("***mapConfig: %v\n", mapConfig)
-
-	// signConfig, err := s.bus.Read(bno055AxisMapSign)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	var mapConfig byte = 0x21
-	var signConfig byte = 0x04
+	signConfig, err := s.bus.Read(bno055AxisMapSign)
+	if err != nil {
+		return nil, err
+	}
 
 	axisConfig := newAxisConfig(mapConfig, signConfig)
 
@@ -353,7 +342,6 @@ func (s *Sensor) RemapAxis(config *AxisConfig) error {
 		return err
 	}
 
-	// here we set the sign
 	err = s.bus.Write(bno055AxisMapSign, config.Signs())
 	if err != nil {
 		return err
@@ -588,18 +576,6 @@ func (s *Sensor) EsetOperationMode(mode byte) error {
 	return nil
 }
 
-func (s *Sensor) WriteMappings(mappings byte) error {
-
-	err := s.bus.Write(bno055AxisMapConfig, mappings)
-	if err != nil {
-		return err
-	}
-
-	// s.opMode = mode
-
-	return nil
-}
-
 func (s *Sensor) readVector(addr byte) (x, y, z int16, err error) {
 	buf := make([]byte, 6)
 	err = s.bus.ReadBuffer(addr, buf)
@@ -648,7 +624,7 @@ func (s *Sensor) checkExists() error {
 
 func (s *Sensor) init() error {
 
-	log.Infof("mmmmm!!")
+	log.Infof("init!!")
 
 	err := s.checkExists()
 	if err != nil {
@@ -667,6 +643,15 @@ func (s *Sensor) init() error {
 	}
 
 	time.Sleep(1000 * time.Millisecond)
+
+	//xxxxxxxxxxx
+	status, err := s.Status()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("*** Statusa: system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
+	//xxxxxxxxxxx
 
 	err = s.checkExists()
 	if err != nil {
@@ -696,6 +681,14 @@ func (s *Sensor) init() error {
 		return err
 	}
 
+	//xxxxxxxxxxx
+	status, err = s.Status()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("*** StatusB: system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
+	//xxxxxxxxxxx
+
 	// Set the unit selection bits
 	err = s.bus.Write(bno055UnitSel, 0x0)
 	if err != nil {
@@ -712,10 +705,13 @@ func (s *Sensor) init() error {
 		return err
 	}
 
-	// err = s.setOperationMode(bno055OperationModeM4g)
-	// if err != nil {
-	// 	return err
-	// }
+	//xxxxxxxxxxx
+	status, err = s.Status()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("*** StatusC: system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
+	//xxxxxxxxxxx
 
 	err = s.Calibrate(defaultCalibrationOffsets)
 	if err != nil {
@@ -726,9 +722,6 @@ func (s *Sensor) init() error {
 }
 
 func (s *Sensor) Einit() error {
-
-	log.Infof("jjjjjjjjjj!!")
-
 	err := s.checkExists()
 	if err != nil {
 		return err
@@ -752,6 +745,15 @@ func (s *Sensor) Einit() error {
 		return err
 	}
 
+	//xxxxxxxxxxx
+	status, err := s.Status()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("*** Statusa: system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
+	//xxxxxxxxxxx
+
 	// Set to normal power mode
 	err = s.bus.Write(bno055PwrMode, bno055PowerModeNormal)
 	if err != nil {
@@ -768,6 +770,15 @@ func (s *Sensor) Einit() error {
 	if err != nil {
 		return err
 	}
+
+	//xxxxxxxxxxx
+	status, err = s.Status()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("*** Statusb: system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
+	//xxxxxxxxxxx
 
 	// Set temperature source to gyroscope, as it seems to be more accurate
 	err = s.bus.Write(bno055TempSource, 0x01)
@@ -790,6 +801,15 @@ func (s *Sensor) Einit() error {
 	if err != nil {
 		return err
 	}
+
+	//xxxxxxxxxxx
+	status, err = s.Status()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("*** Statusc system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
+	//xxxxxxxxxxx
 
 	err = s.Calibrate(defaultCalibrationOffsets)
 	if err != nil {

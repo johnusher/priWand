@@ -117,6 +117,11 @@ func main() {
 		return
 	}
 
+	err = acc.ResetAcc() // bno055OprMode is IMUPLUS = 1000 =0x8
+	if err != nil {
+		log.Errorf("failed to change mode: %s", err)
+	}
+
 	// init gpio module:
 	gpioChan := make(chan gpio.GPIOMessage)
 	// gp, err := gpio.Init(gpioChan, *noGPIO)  // TBD
@@ -175,7 +180,7 @@ func main() {
 	img := image.NewRGBA(image.Rect(0, 0, 128, 64))
 
 	go func() {
-		errs <- GPIOLoop(keys, gpioChan, accChan, img, oled, stdin, stdoutReader)
+		errs <- GPIOLoop(keys, gpioChan, accChan, img, oled, stdin, stdoutReader, a)
 	}()
 
 	// block until ctrl-c or one of the loops returns an error
@@ -185,7 +190,7 @@ func main() {
 
 }
 
-func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc.ACCMessage, img *image.RGBA, oled oled.OLED, stdin io.WriteCloser, stdoutReader *bufio.Reader) error {
+func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc.ACCMessage, img *image.RGBA, oled oled.OLED, stdin io.WriteCloser, stdoutReader *bufio.Reader, a acc.ACC) error {
 	// log.Info("Starting GPIO loop")
 
 	gpioMessage := gpio.GPIOMessage{}
@@ -258,6 +263,25 @@ func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc
 				buttonDown = true
 				n = 0
 				// start recording quaternions from IMU
+
+				// err := acc.Init()
+				// if err != nil {
+				// 	return nil, err
+				// }
+
+				// accChan := make(chan acc.ACCMessage)
+				// _, err := acc.Init(accChan, *noACC)
+				// if err != nil {
+				// 	log.Errorf("failed to initialize acc: %s", err)
+				// 	return
+				// }
+
+				// err := acc.ResetAcc(0x08) // bno055OprMode is IMUPLUS = 1000 =0x8
+				// err := acc.ResetAcc(0x08) // bno055OprMode is IMUPLUS = 1000 =0x8
+				// if err != nil {
+				// 	log.Errorf("failed to change mode: %s", err)
+				// }
+
 			}
 
 			if buttonStatus == 1 {

@@ -91,3 +91,7 @@ func (m *mockACC) Close() error {
 	close(m.done)
 	return nil
 }
+
+func (m *mockACC) ResetAcc() error {
+	return nil
+}
