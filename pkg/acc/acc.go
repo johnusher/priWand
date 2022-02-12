@@ -122,7 +122,23 @@ func initACC(accChan chan<- ACCMessage) (ACC, error) {
 }
 
 func (a *acc) ResetAcc() error {
-	return a.Sensor.EsetOperationMode(0x08)
+	log.Printf("ResetAcc")
+
+	_, err := a.Sensor.AxisConfig()
+	if err != nil {
+		panic(err)
+	}
+
+	a.Sensor.EsetOperationMode(0x08)
+
+	status, err := a.Sensor.Status()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("*** Statusx: system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
+
+	return err
 }
 
 // err = sensor.EsetOperationMode(0x08) // bno055OprMode is IMUPLUS = 1000 =0x8
