@@ -33,6 +33,9 @@ type wavFile struct {
 }
 
 func InitWavs(noSound bool) *Wavs {
+
+	// var wavs *Wavs
+
 	err := portaudio.Initialize()
 	if err != nil {
 		panic(err)

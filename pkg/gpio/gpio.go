@@ -8,7 +8,7 @@ package gpio
 // The library uses the raw BCM2835 pin numbers, not the ports as they are mapped
 // on the J8 output pins for the Raspberry Pi.
 // A mapping from J8 to BCM is provided for those wanting to use the J8 numbering.
-// eg physica; pin
+// eg physical pin
 
 import (
 	"fmt"
@@ -79,7 +79,15 @@ func Init(gpioChan chan<- GPIOMessage, noSound bool) (GPIO, error) {
 
 func initGPIO(gpioChan chan<- GPIOMessage, noSound bool) (GPIO, error) {
 
-	wavsp := wavs.InitWavs(noSound)
+	var wavsp *wavs.Wavs
+
+	// if noSound == true {
+	// 	log.Printf("no sound init")
+	// } else {
+	// 	wavsp = wavs.InitWavs(noSound)
+	// }
+
+	wavsp = wavs.InitWavs(noSound)
 
 	// PushButton is the struct we want to send out
 	// PushButton = &gpio{
@@ -91,6 +99,7 @@ func initGPIO(gpioChan chan<- GPIOMessage, noSound bool) (GPIO, error) {
 	PushButton.gpio = gpioChan
 
 	PushButton.buttonWavs = *wavsp
+
 	buttonEventHandler := mkButtonEventHandler(PushButton)
 
 	// on pi 4, we need to set GPIO 27 to pull up like this:
@@ -241,7 +250,7 @@ func (g *gpio) Close() error {
 func (g *gpio) PlayWav(wavName string) {
 	// here we should play wav!!
 	log.Infof("play wav %s \n", wavName)
-	// PushButton.buttonWavs.Play(wavName)  // how to do this??
+
 	PushButton.buttonWavs.Play(wavName)
 
 	return

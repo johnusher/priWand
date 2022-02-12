@@ -58,13 +58,6 @@ func Init(accChan chan<- ACCMessage, mock bool) (ACC, error) {
 	return initACC(accChan)
 }
 
-// func EInit(*bno055_2.Sensor) (ACC, error) {
-// 	err := bno055_2.Einit()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// }
-
 func initACC(accChan chan<- ACCMessage) (ACC, error) {
 
 	sensor, err := bno055_2.NewSensor(0x28, 3)
@@ -82,7 +75,7 @@ func initACC(accChan chan<- ACCMessage) (ACC, error) {
 		panic(err)
 	}
 
-	fmt.Printf("*** Statusx: system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
+	// fmt.Printf("*** Statusx: system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
 
 	_, err = sensor.AxisConfig()
 	if err != nil {

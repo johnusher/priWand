@@ -111,7 +111,7 @@ func main() {
 	accChan := make(chan acc.ACCMessage)
 	// accChan2 := make(chan acc.ACCMessage2)
 	// a, err := acc.Init(accChan, accChan2, *noACC)
-	a, err := acc.Init(accChan, *noACC)
+	imu, err := acc.Init(accChan, *noACC)
 	if err != nil {
 		log.Errorf("failed to initialize acc: %s", err)
 		return
@@ -168,7 +168,7 @@ func main() {
 	// main loop here:
 	// go forth
 	go kb.Run()
-	go a.Run()
+	go imu.Run()
 
 	errs := make(chan error)
 
@@ -180,7 +180,7 @@ func main() {
 	img := image.NewRGBA(image.Rect(0, 0, 128, 64))
 
 	go func() {
-		errs <- GPIOLoop(keys, gpioChan, accChan, img, oled, stdin, stdoutReader, a)
+		errs <- GPIOLoop(keys, gpioChan, accChan, img, oled, stdin, stdoutReader, imu)
 	}()
 
 	// block until ctrl-c or one of the loops returns an error
@@ -190,7 +190,7 @@ func main() {
 
 }
 
-func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc.ACCMessage, img *image.RGBA, oled oled.OLED, stdin io.WriteCloser, stdoutReader *bufio.Reader, a acc.ACC) error {
+func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc.ACCMessage, img *image.RGBA, oled oled.OLED, stdin io.WriteCloser, stdoutReader *bufio.Reader, imu acc.ACC) error {
 	// log.Info("Starting GPIO loop")
 
 	gpioMessage := gpio.GPIOMessage{}
@@ -269,7 +269,7 @@ func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc
 				// 	return nil, err
 				// }
 
-				err := a.ResetAcc() // bno055OprMode is IMUPLUS = 1000 =0x8
+				err := imu.ResetAcc() // bno055OprMode is IMUPLUS = 1000 =0x8
 				if err != nil {
 					log.Errorf("failed to change mode: %s", err)
 				}

@@ -1,6 +1,8 @@
-// test_record_spell.go
+// test_save_IMU
 
-// requires a raspi 3 or zero
+// save IMU outputs to txt file when we press button
+
+// t
 // connectd with a push button on GPIO and IMU (Bosch BNo055)
 // determine what letter the user draws in the air
 
@@ -53,7 +55,7 @@ func main() {
 
 	// parse inut flags for no hardware
 	// NB no-sound just means do not output sound- still need I2S connections (probably)
-	noACC := flag.Bool("no-acc", false, "run without Bosch accelerometer")
+	noACC := flag.Bool("no-imu", false, "run without Bosch IMU")
 	noOLED := flag.Bool("no-oled", false, "run without oled display")
 	noSound := flag.Bool("no-sound", false, "run without sound")
 
@@ -110,27 +112,27 @@ func main() {
 	// init accelerometer module (Bosch)
 	accChan := make(chan acc.ACCMessage)
 	// accChan2 := make(chan acc.ACCMessage2)
-	// a, err := acc.Init(accChan, accChan2, *noACC)
-	a, err := acc.Init(accChan, *noACC)
+	// imu, err := acc.Init(accChan, accChan2, *noACC)
+	imu, err := acc.Init(accChan, *noACC)
 	if err != nil {
 		log.Errorf("failed to initialize acc: %s", err)
 		return
 	}
 
-	// err = a.ResetAcc() // bno055OprMode is IMUPLUS = 1000 =0x8
+	// err = imu.ResetAcc() // bno055OprMode is IMUPLUS = 1000 =0x8
 	// if err != nil {
 	// 	log.Errorf("failed to change mode: %s", err)
 	// }
 
 	// init gpio module:
 	gpioChan := make(chan gpio.GPIOMessage)
-	// gp, err := gpio.Init(gpioChan, *noGPIO)  // TBD
-	gp, err := gpio.Init(gpioChan, *noSound)
+	// gpio, err := gpio.Init(gpioChan, *noGPIO)  // TBD
+	gpio, err := gpio.Init(gpioChan, *noSound)
 	if err != nil {
 		log.Errorf("failed to initialize GPIO: %s", err)
 		return
 	}
-	defer gp.Close()
+	defer gpio.Close()
 
 	// OLED:
 
@@ -168,7 +170,7 @@ func main() {
 	// main loop here:
 	// go forth
 	go kb.Run()
-	go a.Run()
+	go imu.Run()
 
 	errs := make(chan error)
 
@@ -180,7 +182,7 @@ func main() {
 	img := image.NewRGBA(image.Rect(0, 0, 128, 64))
 
 	go func() {
-		errs <- GPIOLoop(keys, gpioChan, accChan, img, oled, stdin, stdoutReader, a)
+		errs <- GPIOLoop(keys, gpioChan, accChan, img, oled, stdin, stdoutReader, imu)
 	}()
 
 	// block until ctrl-c or one of the loops returns an error
@@ -190,7 +192,7 @@ func main() {
 
 }
 
-func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc.ACCMessage, img *image.RGBA, oled oled.OLED, stdin io.WriteCloser, stdoutReader *bufio.Reader, a acc.ACC) error {
+func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc.ACCMessage, img *image.RGBA, oled oled.OLED, stdin io.WriteCloser, stdoutReader *bufio.Reader, imu acc.ACC) error {
 	// log.Info("Starting GPIO loop")
 
 	gpioMessage := gpio.GPIOMessage{}
@@ -264,12 +266,7 @@ func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc
 				n = 0
 				// start recording quaternions from IMU
 
-				// err := acc.Init()
-				// if err != nil {
-				// 	return nil, err
-				// }
-
-				err := a.ResetAcc() // bno055OprMode is IMUPLUS = 1000 =0x8
+				err := imu.ResetAcc() // bno055OprMode is IMUPLUS = 1000 =0x8
 				if err != nil {
 					log.Errorf("failed to change mode: %s", err)
 				}
@@ -290,10 +287,73 @@ func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc
 				// mFnbT9sthKKp22GR
 
 				if n > 20 {
+
+					// save to file:
+
+					// make folder to save:
+					t := time.Now()
+					// newDir := fmt.Sprintf("%d-%02d-%02d_%02d-%02d-%02d",
+					newDir := fmt.Sprintf("M_%02d-%02d-%02d",
+						// t.Year(), t.Month(), t.Day(),
+
+						t.Hour(), t.Minute(), t.Second())
+
+					// fmt.Println("Name:", newDir)
+					log.Printf("Name: %v", newDir)
+					// ioutil.WriteFile(+name, []byte("Contents"), 0)
+
+					if _, err := os.Stat(newDir); os.IsNotExist(err) {
+						os.Mkdir(newDir, 0700)
+					}
+
+					os.Chdir(newDir)
+
+					// f0, err := os.Create("euler_data.txt")
+					// if err != nil {
+					// 	panic(err)
+					// }
+
+					fquat, err := os.Create("quaternion_data.txt")
+					if err != nil {
+						panic(err)
+					}
+
+					// f4, err := os.Create("gravity_data.txt")
+					// if err != nil {
+					// 	panic(err)
+					// }
+
+					// defer f0.Close()
+					defer fquat.Close()
+					// defer f4.Close()
+
+					length := n
+					startOffset := 10
+					length = length - startOffset
+
+					for n = 0; n < length; n++ {
+						w := quat_in_circ_buffer[n+startOffset][0]
+						x := quat_in_circ_buffer[n+startOffset][1]
+						y := quat_in_circ_buffer[n+startOffset][2]
+						z := quat_in_circ_buffer[n+startOffset][3]
+						sw := strconv.FormatFloat(float64(w), 'f', -1, 32)
+						sx := strconv.FormatFloat(float64(x), 'f', -1, 32)
+						sy := strconv.FormatFloat(float64(y), 'f', -1, 32)
+						sz := strconv.FormatFloat(float64(z), 'f', -1, 32)
+						_, err := fquat.WriteString(sw + " " + sx + " " + sy + " " + sz + "\n")
+						if err != nil {
+							panic(err)
+						}
+					}
+
+
+					log.Infof("saved file")
+
+					// convert quats to image:
 					encoded, letterImage := quats2Image(quat_in_circ_buffer, n)
 
 					// send encoded base64 28x28 ti TF:
-					_, err := stdin.Write([]byte(encoded))
+					_, err = stdin.Write([]byte(encoded))
 					if err != nil {
 						log.Errorf("stdin.Write() failed: %s", err)
 					}

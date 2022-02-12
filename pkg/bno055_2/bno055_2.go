@@ -645,12 +645,12 @@ func (s *Sensor) init() error {
 	time.Sleep(1000 * time.Millisecond)
 
 	//xxxxxxxxxxx
-	status, err := s.Status()
-	if err != nil {
-		panic(err)
-	}
+	// status, err := s.Status()
+	// if err != nil {
+	// 	panic(err)
+	// }
 
-	fmt.Printf("*** Statusa: system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
+	// fmt.Printf("*** Statusa: system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
 	//xxxxxxxxxxx
 
 	err = s.checkExists()
@@ -682,11 +682,11 @@ func (s *Sensor) init() error {
 	}
 
 	//xxxxxxxxxxx
-	status, err = s.Status()
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("*** StatusB: system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
+	// status, err = s.Status()
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// fmt.Printf("*** StatusB: system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
 	//xxxxxxxxxxx
 
 	// Set the unit selection bits
@@ -706,11 +706,11 @@ func (s *Sensor) init() error {
 	}
 
 	//xxxxxxxxxxx
-	status, err = s.Status()
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("*** StatusC: system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
+	// status, err = s.Status()
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// fmt.Printf("*** StatusC: system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
 	//xxxxxxxxxxx
 
 	err = s.Calibrate(defaultCalibrationOffsets)
@@ -772,12 +772,12 @@ func (s *Sensor) Einit() error {
 	}
 
 	//xxxxxxxxxxx
-	status, err = s.Status()
-	if err != nil {
-		panic(err)
-	}
+	// status, err = s.Status()
+	// if err != nil {
+	// 	panic(err)
+	// }
 
-	fmt.Printf("*** Statusb: system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
+	// fmt.Printf("*** Statusb: system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
 	//xxxxxxxxxxx
 
 	// Set temperature source to gyroscope, as it seems to be more accurate
@@ -803,12 +803,12 @@ func (s *Sensor) Einit() error {
 	}
 
 	//xxxxxxxxxxx
-	status, err = s.Status()
-	if err != nil {
-		panic(err)
-	}
+	// status, err = s.Status()
+	// if err != nil {
+	// 	panic(err)
+	// }
 
-	fmt.Printf("*** Statusc system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
+	// fmt.Printf("*** Statusc system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
 	//xxxxxxxxxxx
 
 	err = s.Calibrate(defaultCalibrationOffsets)
@@ -856,10 +856,10 @@ func NewSensorFromBus(bus I2CBus) (*Sensor, error) {
 		opMode: bno055OperationModeNdof,
 	}
 
-	err := sensor.init()
-	if err != nil {
-		return nil, err
-	}
+	// err := sensor.init()
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	return sensor, nil
 }
