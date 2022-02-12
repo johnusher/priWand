@@ -34,15 +34,11 @@ type ACCMessage struct {
 	QuatX float64
 	QuatY float64
 	QuatZ float64
-}
 
-// type ACCMessage2 struct {
-// 	// Temp    int8
-// 	QuatW float64
-// 	QuatX float64
-// 	QuatY float64
-// 	QuatZ float64
-// }
+	GravX float64
+	GravY float64
+	GravZ float64
+}
 
 type acc struct {
 	acc chan<- ACCMessage
@@ -182,6 +178,16 @@ func (a *acc) Run() error {
 			quat_x := float64(quat.X)
 			quat_y := float64(quat.Y)
 			quat_z := float64(quat.Z)
+
+			grav, err := a.Sensor.Gravity()
+			// https://github.com/adafruit/Adafruit_BNO055/blob/master/utility/quaternion.h
+			if err != nil {
+				log.Errorf("Gravity error: %v", err)
+			}
+			grav_x := float64(grav.X)
+			grav_y := float64(grav.Y)
+			grav_z := float64(grav.Z)
+
 			// acc, err := a.Sensor.LinearAccelerometer()
 			// if err != nil {
 			// 	log.Errorf("acc error: %v", err)
@@ -210,15 +216,10 @@ func (a *acc) Run() error {
 				QuatX:   quat_x,
 				QuatY:   quat_y,
 				QuatZ:   quat_z,
+				GravX:   grav_x,
+				GravY:   grav_y,
+				GravZ:   grav_z,
 			}
-
-			// a.acc2 <- ACCMessage2{
-			// 	// Temp:    temp,
-			// 	QuatW: quat_w,
-			// 	QuatX: quat_x,
-			// 	QuatY: quat_y,
-			// 	QuatZ: quat_z,
-			// }
 
 		}
 

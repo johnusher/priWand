@@ -168,6 +168,9 @@ func main() {
 	}
 
 	// main loop here:
+
+	os.Chdir("letters/feb22")
+
 	// go forth
 	go kb.Run()
 	go imu.Run()
@@ -200,7 +203,9 @@ func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc
 
 	buttonDown := false
 	n := 0
-	var quat_in_circ_buffer [circBufferL][5]float64 // raw quaternion inputs from file or IMU
+	var quat_in_circ_buffer [circBufferL][5]float64    // raw quaternion inputs from IMU
+	var gravity_in_circ_buffer [circBufferL][5]float64 // raw gravity inputs from  IMU
+	var euler_in_circ_buffer [circBufferL][5]float64   // raw euler inputs from  IMU
 
 	more := false
 	for {
@@ -244,6 +249,15 @@ func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc
 				quat_in_circ_buffer[n][1] = accMessage.QuatX
 				quat_in_circ_buffer[n][2] = accMessage.QuatY
 				quat_in_circ_buffer[n][3] = accMessage.QuatZ
+
+				gravity_in_circ_buffer[n][0] = accMessage.GravX
+				gravity_in_circ_buffer[n][1] = accMessage.GravY
+				gravity_in_circ_buffer[n][2] = accMessage.GravZ
+
+				euler_in_circ_buffer[n][0] = accMessage.Bearing
+				euler_in_circ_buffer[n][1] = accMessage.Roll
+				euler_in_circ_buffer[n][2] = accMessage.Tilt
+
 			}
 
 		case gpioMessage, more = <-gpioCh:
@@ -264,12 +278,14 @@ func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc
 				// log.Infof("button down %v", buttonStatus)
 				buttonDown = true
 				n = 0
+
+				log.Infof("button down")
 				// start recording quaternions from IMU
 
-				err := imu.ResetAcc() // bno055OprMode is IMUPLUS = 1000 =0x8
-				if err != nil {
-					log.Errorf("failed to change mode: %s", err)
-				}
+				// err := imu.ResetAcc() // bno055OprMode is IMUPLUS = 1000 =0x8
+				// if err != nil {
+				// 	log.Errorf("failed to change mode: %s", err)
+				// }
 
 			}
 
@@ -289,7 +305,7 @@ func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc
 				if n > 20 {
 
 					// save to file:
-
+					log.Infof("saving files. . .")
 					// make folder to save:
 					t := time.Now()
 					// newDir := fmt.Sprintf("%d-%02d-%02d_%02d-%02d-%02d",
@@ -299,33 +315,26 @@ func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc
 						t.Hour(), t.Minute(), t.Second())
 
 					// fmt.Println("Name:", newDir)
-					log.Printf("Name: %v", newDir)
+					// log.Printf("Name: %v", newDir)
 					// ioutil.WriteFile(+name, []byte("Contents"), 0)
 
 					if _, err := os.Stat(newDir); os.IsNotExist(err) {
 						os.Mkdir(newDir, 0700)
 					}
 
+					OG_dir, err := os.Getwd()
+					if err != nil {
+						log.Infof("problem changing dir")
+					}
+
 					os.Chdir(newDir)
 
-					// f0, err := os.Create("euler_data.txt")
-					// if err != nil {
-					// 	panic(err)
-					// }
-
-					fquat, err := os.Create("quaternion_data.txt")
+					// now save gravity
+					fquat, err := os.Create("quat_data.txt")
 					if err != nil {
 						panic(err)
 					}
-
-					// f4, err := os.Create("gravity_data.txt")
-					// if err != nil {
-					// 	panic(err)
-					// }
-
-					// defer f0.Close()
 					defer fquat.Close()
-					// defer f4.Close()
 
 					length := n
 					startOffset := 10
@@ -346,9 +355,59 @@ func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc
 						}
 					}
 
+					// now save gravity
+					fgrav, err := os.Create("gravity_data.txt")
+					if err != nil {
+						panic(err)
+					}
 
-					log.Infof("saved file")
+					defer fgrav.Close()
 
+					length = n
+					startOffset = 10
+					length = length - startOffset
+
+					for n = 0; n < length; n++ {
+						x := gravity_in_circ_buffer[n+startOffset][0]
+						y := gravity_in_circ_buffer[n+startOffset][1]
+						z := gravity_in_circ_buffer[n+startOffset][2]
+						sx := strconv.FormatFloat(float64(x), 'f', -1, 32)
+						sy := strconv.FormatFloat(float64(y), 'f', -1, 32)
+						sz := strconv.FormatFloat(float64(z), 'f', -1, 32)
+						_, err := fgrav.WriteString(sx + " " + sy + " " + sz + "\n")
+						if err != nil {
+							panic(err)
+						}
+					}
+
+					// now save euler
+					feuler, err := os.Create("euler_data.txt")
+					if err != nil {
+						panic(err)
+					}
+
+					defer feuler.Close()
+
+					length = n
+					startOffset = 10
+					length = length - startOffset
+
+					for n = 0; n < length; n++ {
+						x := euler_in_circ_buffer[n+startOffset][0]
+						y := euler_in_circ_buffer[n+startOffset][1]
+						z := euler_in_circ_buffer[n+startOffset][2]
+						sx := strconv.FormatFloat(float64(x), 'f', -1, 32)
+						sy := strconv.FormatFloat(float64(y), 'f', -1, 32)
+						sz := strconv.FormatFloat(float64(z), 'f', -1, 32)
+						_, err := feuler.WriteString(sx + " " + sy + " " + sz + "\n")
+						if err != nil {
+							panic(err)
+						}
+					}
+
+					log.Infof("saved files")
+
+					os.Chdir(OG_dir)
 					// convert quats to image:
 					encoded, letterImage := quats2Image(quat_in_circ_buffer, n)
 
