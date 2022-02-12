@@ -309,7 +309,7 @@ func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc
 					// make folder to save:
 					t := time.Now()
 					// newDir := fmt.Sprintf("%d-%02d-%02d_%02d-%02d-%02d",
-					newDir := fmt.Sprintf("M_%02d-%02d-%02d",
+					newDir := fmt.Sprintf("L_%02d-%02d-%02d",
 						// t.Year(), t.Month(), t.Day(),
 
 						t.Hour(), t.Minute(), t.Second())
