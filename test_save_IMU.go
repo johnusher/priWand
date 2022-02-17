@@ -363,9 +363,6 @@ func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc
 
 					defer fgrav.Close()
 
-					length = n
-					startOffset = 10
-					length = length - startOffset
 
 					for n = 0; n < length; n++ {
 						x := gravity_in_circ_buffer[n+startOffset][0]
@@ -387,10 +384,7 @@ func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc
 					}
 
 					defer feuler.Close()
-
-					length = n
-					startOffset = 10
-					length = length - startOffset
+	
 
 					for n = 0; n < length; n++ {
 						x := euler_in_circ_buffer[n+startOffset][0]
