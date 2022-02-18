@@ -1,7 +1,7 @@
 // dummyBATMAN.go
 // send commands over BM network
 
-// pi4: go run dummyBATMAN.go -rasp-id=67 --web-addr :8082 -no-batman -log-level debug
+// pi4: go run dummyBATMAN.go -rasp-id=67 --web-addr :8082 -log-level debug
 
 package main
 
@@ -109,9 +109,6 @@ func main() {
 	if *noBatman {
 		bcastIP = net.ParseIP(localBcast)
 	}
-
-	// When connecting to an older revision Arduino, you need to wait
-	time.Sleep(1 * time.Second)
 
 	// Setup keyboard input:
 	stop := make(chan os.Signal, 1)
@@ -226,6 +223,8 @@ func receiveBATMAN(messages <-chan []byte, raspID string, web *web.Web, bcastIP 
 
 		case message, _ := <-messages:
 			// message on the BATMAN
+
+			log.Infof("message received")
 
 			magicBytesRx := string(message[0:2]) // combine the magicBytes
 			if magicBytesRx != magicByte {
