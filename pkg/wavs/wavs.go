@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	WAVS = "./wav_audio/woofs"
+	WAVS = "./wav_audio/wand3"
 	BUF  = 128
 )
 
@@ -90,7 +90,7 @@ func initWav(f os.FileInfo, noSound bool) *wavFile {
 			}
 		} else {
 			for _, sample := range samples {
-				buf[loc] = float32(reader.FloatValue(sample, 0))
+				buf[loc] = 0.3 * float32(reader.FloatValue(sample, 0)) // gain
 				loc += 1
 			}
 		}

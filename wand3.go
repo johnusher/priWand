@@ -8,7 +8,7 @@
 
 // key press Q to quit
 
-// pi4: go run wand3.go -rasp-id=67 --web-addr :8082 -no-batman -log-level debug
+// pi4: go run wand3.go -rasp-id=67 --web-addr :8082 -log-level debug
 
 // push from 4->3:
 // rsync -a wand2.go pi@192.168.1.166:code/go/src/github.com/johnusher/priWand/
@@ -19,8 +19,8 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 
-	// "math/rand"
 	"net"
 	"os"
 	"os/signal"
@@ -28,11 +28,7 @@ import (
 	"syscall"
 	"time"
 
-	// "github.com/qinxin0720/lcd1602"
-
 	// i2c "github.com/d2r2/go-i2c"
-
-	// "github.com/johnusher/priWand/pkg/gpio"
 
 	"github.com/johnusher/priWand/pkg/acc"
 	"github.com/johnusher/priWand/pkg/gpio"
@@ -54,7 +50,6 @@ import (
 
 	_ "image/png"
 
-	// "github.com/goiot/devices/monochromeoled"
 	"golang.org/x/exp/io/i2c"
 )
 
@@ -104,7 +99,8 @@ type chatRequestWithTimestamp struct {
 
 // String satisfies the Stringer interface
 func (c ChatRequest) String() string {
-	return fmt.Sprintf("id: %s, coords: (%f, %f), HDOP: %.2f", c.ID, c.Latf, c.Longf, c.HDOPf)
+	// return fmt.Sprintf("id: %s, coords: (%f, %f), HDOP: %.2f", c.ID, c.Latf, c.Longf, c.HDOPf)
+	return fmt.Sprintf("[%s,]", c.ID)
 }
 
 // String satisfies the Stringer interface
@@ -301,7 +297,7 @@ func main() {
 	}
 	duino.Flush()
 
-	gp.PlayWav("hello.wav") // play wav
+	// gp.PlayWav("hello.wav") // play wav
 
 	errs := make(chan error)
 
@@ -396,6 +392,30 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 
 					if messageType == messageTypeKey {
 						// received a key message
+
+						// first unpack the message:
+						keyMessagek := message[8] // we should maybe look at total message legnth and combine other bytes if longer than 7
+
+						strMessage := string(keyMessagek)
+						// check message and play sound immediately:
+
+						if strMessage == "D" || strMessage == "d" {
+							woofFN := rand.Int31n(9) + 1
+							catcat2 := fmt.Sprintf("bark%d.wav", woofFN)
+
+							// gp.PlayWav("bark1.wav") // play wav
+							gp.PlayWav(catcat2) // play wav
+
+						}
+
+						if strMessage == "C" || strMessage == "c" {
+							// catFN := 2*rand.Int31n(3) + 1
+							// catcat2 := fmt.Sprintf("meow_%d.wav", catFN)
+							// catcat2 := fmt.Sprintf("meow_%d.wav", catFN)
+							gp.PlayWav("meow_3.wav") // play wav
+
+						}
+
 						// duino command: send straight to duino
 						// duinoMessage := "0;255;255;64\n" ///c change to solid colour
 						// duinoMessage = "3;125\n" // mode 3 = rainbow fade, speed=25
@@ -409,20 +429,17 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 						}
 						duino.Flush()
 
-						// first unpack the message:
-						keyMessagek := message[8] // we should maybe look at total message legnth and combine other bytes if longer than 7
-
 						log.Infof("key from other %s \n", (string(keyMessagek)))
 
 						// OLED display:
 						OLEDmsg := fmt.Sprintf("received:  %s", (string(keyMessagek)))
 						oled.ShowText(img, 2, OLEDmsg)
 
-						gp.PlayWav("hello.wav") // play wav
+						// gp.PlayWav("hello.wav") // play wav
+
+						// gp.PlayWav("bark1.wav") // play wav
 
 						// now send an ack back to them
-
-						// send just to the one we are pointing at:
 
 						// send key=1 to network, to the piID. ie using broadcastLoop
 

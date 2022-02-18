@@ -281,7 +281,8 @@ func delayedButtonHandle(PushButton *gpio) {
 		// play long howl
 		// catMeowN := rand.Int31n(2) + 1
 		// catcat := fmt.Sprintf("howl%d.wav", catMeowN)
-		catcat := fmt.Sprintf("zweep.wav")
+		// catcat := fmt.Sprintf("zweep.wav")
+		catcat := fmt.Sprintf("swanee.wav")
 
 		cancelButtonWav := PushButton.enqueue()
 		go func() {
