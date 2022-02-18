@@ -39,8 +39,8 @@ uint8_t ColB = 49;
 
 uint8_t brightness = 4;   // amount we right shift by
 
-int onTime = 5000; 
-int offTime = 5000; 
+uint16_t onTime = 5000; 
+uint16_t offTime = 5000; 
 
 uint8_t maxC = 128;   // max colour value
 
