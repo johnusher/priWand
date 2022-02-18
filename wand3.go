@@ -109,7 +109,7 @@ func (c ChatRequest) String() string {
 
 // String satisfies the Stringer interface
 func (c chatRequestWithTimestamp) String() string {
-	return fmt.Sprintf("%s, age: %s]", c.ChatRequest, time.Now().Sub(c.lastMessageReceived))
+	return fmt.Sprintf("[%s, age: %s]", c.ChatRequest, time.Now().Sub(c.lastMessageReceived))
 }
 
 func main() {
@@ -608,8 +608,8 @@ func broadcastLoop(keys <-chan rune, duino port.Port, raspID string, bcastIP net
 				log.Infof("exiting")
 				return nil
 			}
-			log.Infof("key pressed: %s / %d / 0x%X / 0%o \n", string(key), key, key, key)
-
+			// log.Infof("key pressed: %s / %d / 0x%X / 0%o \n", string(key), key, key, key)
+			log.Infof("key pressed: %s  \n", string(key))
 			// duino message (9 bytes)
 			// 2 bytes: <2 magic bytes>
 			// 1 byte:  <total message length, bytes>

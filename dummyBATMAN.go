@@ -3,6 +3,9 @@
 
 // pi4: go run dummyBATMAN.go -rasp-id=67 --web-addr :8082 -log-level debug
 
+// push from 4->3:
+// rsync -a dummyBATMAN.go pi@192.168.1.166:code/go/src/github.com/johnusher/priWand/
+
 package main
 
 import (
@@ -72,12 +75,13 @@ type chatRequestWithTimestamp struct {
 
 // String satisfies the Stringer interface
 func (c ChatRequest) String() string {
-	return fmt.Sprintf("id: %s, coords: (%f, %f), HDOP: %.2f", c.ID, c.Latf, c.Longf, c.HDOPf)
+	// return fmt.Sprintf("id: %s, coords: (%f, %f), HDOP: %.2f", c.ID, c.Latf, c.Longf, c.HDOPf)
+	return fmt.Sprintf("id: %s", c.ID)
 }
 
 // String satisfies the Stringer interface
 func (c chatRequestWithTimestamp) String() string {
-	return fmt.Sprintf("%s, age: %s]", c.ChatRequest, time.Now().Sub(c.lastMessageReceived))
+	return fmt.Sprintf("%s, age: %s", c.ChatRequest, time.Now().Sub(c.lastMessageReceived))
 }
 
 func main() {
@@ -223,8 +227,6 @@ func receiveBATMAN(messages <-chan []byte, raspID string, web *web.Web, bcastIP 
 
 		case message, _ := <-messages:
 			// message on the BATMAN
-
-			log.Infof("message received")
 
 			magicBytesRx := string(message[0:2]) // combine the magicBytes
 			if magicBytesRx != magicByte {

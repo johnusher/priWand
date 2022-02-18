@@ -40,10 +40,13 @@ func (k *Keyboard) Run() error {
 				return nil
 			}
 
-			if (string(ev.Ch) == "0") || (string(ev.Ch) == "1") {
-				k.keys <- ev.Ch
-				termbox.Flush()
-			}
+			// if (string(ev.Ch) == "0") || (string(ev.Ch) == "1") {
+			// 	k.keys <- ev.Ch
+			// 	termbox.Flush()
+			// }
+
+			k.keys <- ev.Ch
+			termbox.Flush()
 
 		case termbox.EventError:
 			log.Errorf("termbox error: %s", ev.Err)
