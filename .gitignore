@@ -1,3 +1,5 @@
+go.mod
+go.sum
 
 # Specific binaries
 GPIOTEST

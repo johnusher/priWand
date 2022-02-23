@@ -8,8 +8,8 @@
 
 // key press Q to quit
 
-// pi4: go run wand3.go -rasp-id=67 --web-addr :8082 -log-level debug
-// pi4: go run wand3.go -rasp-id=67 --web-addr :8082 -no-batman -log-level debug
+// pi4: go run wand3.go -rasp-id=68 --web-addr :8082 -log-level debug
+// pi4: go run wand3.go -rasp-id=68 --web-addr :8082 -no-batman -log-level debug
 
 // push from 4->3:
 // rsync -a wand2.go pi@192.168.1.166:code/go/src/github.com/johnusher/priWand/

@@ -10,7 +10,7 @@
 #   sudo make install
 # )
 
-echo waiting 2 secs
+echo pi4
 sleep 2s
 # Activate batman-adv
 sudo modprobe batman-adv
