@@ -9,6 +9,8 @@ require (
 	github.com/jacobsa/go-serial v0.0.0-20180131005756-15cf729a72d4
 	github.com/johnusher/ardpifi v0.0.0-20211018195758-cf90fa879ec8
 	github.com/kpeu3i/bno055 v1.0.3
+	github.com/mattn/go-pointer v0.0.1
+	github.com/mattn/go-tflite v1.0.1
 	github.com/nsf/termbox-go v1.1.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07

@@ -205,6 +205,7 @@ github.com/mattn/go-runewidth v0.0.9 h1:Lm995f3rfxdpd6TSmuVCHVb/QhupuXlYr8sCI/Qd
 github.com/mattn/go-runewidth v0.0.9/go.mod h1:H031xJmbD/WCDINGzjvQ9THkh0rPKHF+m2gUSrubnMI=
 github.com/mattn/go-runewidth v0.0.13 h1:lTGmDsbAYt5DmK6OnoV7EuIF1wEIFAcxld6ypU4OSgU=
 github.com/mattn/go-runewidth v0.0.13/go.mod h1:Jdepj2loyihRzMpdS35Xk/zdY8IAYHsh153qUoGf23w=
+github.com/mattn/go-tflite v1.0.1 h1:bTfbF7HIF0n3vQsl2JdMUhsFT/KkQuQlCy0UlnF9D4M=
 github.com/mattn/go-tflite v1.0.1/go.mod h1:LME9BQINAkZIOGDVDJJcCa2v0NMuV2AKaf1U47NVS4w=
 github.com/mattn/go-tflite v1.0.2 h1:P9CKqjyRSRM31SfL65WklD8U5B/iPD4CJQiRkB8K02g=
 github.com/mattn/go-tflite v1.0.2/go.mod h1:2NwhEYXoP8vxRIpu95DElqMkZoV39ABRPF3AETN7N1w=
