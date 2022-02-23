@@ -7,6 +7,8 @@ require (
 	github.com/gordonklaus/portaudio v0.0.0-20200911161147-bb74aa485641
 	github.com/gorilla/websocket v1.5.0
 	github.com/kpeu3i/bno055 v1.0.3
+	github.com/mattn/go-pointer v0.0.1
+	github.com/mattn/go-tflite v1.0.1
 	github.com/nsf/termbox-go v1.1.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07

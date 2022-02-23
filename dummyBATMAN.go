@@ -1,6 +1,7 @@
 // dummyBATMAN.go
 // send commands over BM network
 
+// pi3: go run dummyBATMAN.go -rasp-id=66 --web-addr :8082 -log-level debug
 // pi4: go run dummyBATMAN.go -rasp-id=67 --web-addr :8082 -log-level debug
 
 // push from 4->3:
@@ -66,12 +67,15 @@ type ChatRequest struct {
 	Key          rune
 	PointDir     int64
 	ButtonStatus int64
+	ShieldTimer  time.Time
 }
 
 type chatRequestWithTimestamp struct {
 	ChatRequest
 	lastMessageReceived time.Time
 }
+
+var allPIs = map[string]chatRequestWithTimestamp{} // how to make this readable by broadcastLoop??
 
 // String satisfies the Stringer interface
 func (c ChatRequest) String() string {
@@ -213,12 +217,16 @@ func receiveBATMAN(messages <-chan []byte, raspID string, web *web.Web, bcastIP 
 	// listen for new incoming BATMAN message
 	// allPIs keeps track of the last message received from each PI, keyed by
 	// raspID
-	allPIs := map[string]chatRequestWithTimestamp{}
+
+	// allPIs := map[string]chatRequestWithTimestamp{}  // how to make this readable by broadcastLoop??
+
 	// accMessage := acc.ACCMessage{}
 	bcast := &net.UDPAddr{Port: batPort, IP: bcastIP}
 
 	crwt, _ := allPIs[raspID]
 	crwt.ButtonStatus = 0 // init button status to button up: for some reason this should be a 1 for up but ...
+
+	crwt.ShieldTimer = time.Now() // reset shield timer
 
 	// more := false
 
@@ -340,6 +348,8 @@ func broadcastLoop(keys <-chan rune, raspID string, bcastIP net.IP, bm *readBATM
 
 	bcast := &net.UDPAddr{Port: batPort, IP: bcastIP}
 
+	// crwt, _ := allPIs[raspID]
+
 	for {
 		select {
 
@@ -362,6 +372,14 @@ func broadcastLoop(keys <-chan rune, raspID string, bcastIP net.IP, bm *readBATM
 			// 2 bytes: <who For = 2 bytes, (0= everyone, or ID of)>
 			// 1 byte:  <message type (0=gps, 1=duino command, 2=gesture type)>
 			// 1 byte:  key
+
+			if (string(key) == "s") || (string(key) == "S") {
+				// pressed a shield
+				log.Infof("shield pressed!\n")
+				// crwt, _ := allPIs[raspID]
+				// crwt.ShieldTimer := time.Now() // reset shield timer: problem here!!
+				// crwt.ChatRequest.PointDir := 1.0 // reset shield timer: problem here!!
+			}
 
 			duinoMsgSize := 9                        // 23 bytes for a duino message
 			messageOut := make([]byte, duinoMsgSize) // sent to batman
