@@ -91,6 +91,7 @@ type ChatRequest struct {
 	Key          rune
 	PointDir     int64
 	ButtonStatus int64
+	ShieldTimer  time.Time
 }
 
 type chatRequestWithTimestamp struct {
@@ -108,6 +109,8 @@ func (c ChatRequest) String() string {
 func (c chatRequestWithTimestamp) String() string {
 	return fmt.Sprintf("[%s, age: %s]", c.ChatRequest, time.Now().Sub(c.lastMessageReceived))
 }
+
+var allPIs = map[string]chatRequestWithTimestamp{} // how to make this readable by broadcastLoop??
 
 func main() {
 	raspID := flag.String("rasp-id", "60", "unique raspberry pi ID") // only 2 characters. use last 2 digits of IP
@@ -356,7 +359,7 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 	// listen for new incoming BATMAN message
 	// allPIs keeps track of the last message received from each PI, keyed by
 	// raspID
-	allPIs := map[string]chatRequestWithTimestamp{}
+	// allPIs := map[string]chatRequestWithTimestamp{}
 	// accMessage := acc.ACCMessage{}
 	bcast := &net.UDPAddr{Port: batPort, IP: bcastIP}
 
@@ -398,15 +401,32 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 						keyMessagek := message[8] // we should maybe look at total message legnth and combine other bytes if longer than 7
 
 						strMessage := string(keyMessagek)
+
+						// check if my shield is up
+						now := time.Now()
+						elapsedTime := now.Sub(crwt.ShieldTimer)
+						log.Infof("shield active for: %v\n", elapsedTime)
+
+						if elapsedTime < 4*time.Second {
+							// shield is up: cancel
+							strMessage = "X"
+
+							// go to cancel routine and return
+
+						}
+
+						if strMessage == "X" || strMessage == "x" {
+							// play shield up sound
+							gp.PlayWav("fart.wav") // play shield up wav
+						}
+
 						// check message and play sound immediately:
 
 						if strMessage == "D" || strMessage == "d" {
 							woofFN := rand.Int31n(9) + 1
 							catcat2 := fmt.Sprintf("bark%d.wav", woofFN)
-
 							// gp.PlayWav("bark1.wav") // play wav
 							gp.PlayWav(catcat2) // play wav
-
 						}
 
 						if strMessage == "C" || strMessage == "c" {
@@ -414,7 +434,6 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 							// catcat2 := fmt.Sprintf("meow_%d.wav", catFN)
 							// catcat2 := fmt.Sprintf("meow_%d.wav", catFN)
 							gp.PlayWav("meow_3.wav") // play wav
-
 						}
 
 						// duino command: send straight to duino
@@ -522,6 +541,9 @@ func broadcastLoop(keys <-chan rune, duino port.Port, raspID string, bcastIP net
 	// this is for local messages from locl device hw, key-presses, GPIO press, eventually letter-gesture from TF
 
 	bcast := &net.UDPAddr{Port: batPort, IP: bcastIP}
+
+	crwt, _ := allPIs[raspID]
+	crwt.ShieldTimer = time.Now() // reset shield timer
 
 	// buttonDown := false
 	n := 0 // counts how long we have button down
@@ -635,6 +657,18 @@ func broadcastLoop(keys <-chan rune, duino port.Port, raspID string, bcastIP net
 			// 2 bytes: <who For = 2 bytes, (0= everyone, or ID of)>
 			// 1 byte:  <message type (0=gps, 1=duino command, 2=gesture type)>
 			// 1 byte:  key
+
+			if (string(key) == "s") || (string(key) == "S") {
+				// pressed a shield
+				log.Infof("shield pressed!\n")
+
+				now := time.Now()
+				// elapsedTime := now.Sub(crwt.ShieldTimer)
+				// log.Infof("elapsedTime: %v\n", elapsedTime)
+
+				crwt.ShieldTimer = now // reset shield timer:
+				// crwt.ChatRequest.PointDir := 1.0 // reset shield timer: problem here!!
+			}
 
 			duinoMsgSize := 9                        // 23 bytes for a duino message
 			messageOut := make([]byte, duinoMsgSize) // sent to batman

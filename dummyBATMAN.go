@@ -88,6 +88,11 @@ func (c chatRequestWithTimestamp) String() string {
 	return fmt.Sprintf("%s, age: %s", c.ChatRequest, time.Now().Sub(c.lastMessageReceived))
 }
 
+// // ShieldTimer
+// func (c ChatRequestST) String() string {
+// 	return fmt.Sprintf("ShieldTimer: %s", c.ShieldTimer)
+// }
+
 func main() {
 	raspID := flag.String("rasp-id", "60", "unique raspberry pi ID") // only 2 characters. use last 2 digits of IP
 	webAddr := flag.String("web-addr", ":8080", "address to serve web on")
@@ -226,7 +231,7 @@ func receiveBATMAN(messages <-chan []byte, raspID string, web *web.Web, bcastIP 
 	crwt, _ := allPIs[raspID]
 	crwt.ButtonStatus = 0 // init button status to button up: for some reason this should be a 1 for up but ...
 
-	crwt.ShieldTimer = time.Now() // reset shield timer
+	// crwt.ShieldTimer = time.Now() // reset shield timer
 
 	// more := false
 
@@ -262,6 +267,18 @@ func receiveBATMAN(messages <-chan []byte, raspID string, web *web.Web, bcastIP 
 						keyMessagek := message[8] // we should maybe look at total message legnth and combine other bytes if longer than 7
 
 						log.Infof("key from other %s \n", (string(keyMessagek)))
+
+						if (string(keyMessagek) == "c") || (string(keyMessagek) == "C") {
+							// check for shielf active
+							log.Infof("C received\n")
+
+							now := time.Now()
+							elapsedTime := now.Sub(crwt.ShieldTimer)
+							log.Infof("shield active for: %v\n", elapsedTime)
+
+							// crwt.ShieldTimer = now // reset shield timer:
+							// crwt.ChatRequest.PointDir := 1.0 // reset shield timer: problem here!!
+						}
 
 						// now send an ack back to them
 
@@ -348,7 +365,13 @@ func broadcastLoop(keys <-chan rune, raspID string, bcastIP net.IP, bm *readBATM
 
 	bcast := &net.UDPAddr{Port: batPort, IP: bcastIP}
 
+	crwt, _ := allPIs[raspID]
+	crwt.ShieldTimer = time.Now() // reset shield timer
+
+	// log.Info("crwt %v", crwt)
+
 	// crwt, _ := allPIs[raspID]
+	// log.Info("crwt.ButtonStatus %v", crwt.ButtonStatus)
 
 	for {
 		select {
@@ -376,8 +399,12 @@ func broadcastLoop(keys <-chan rune, raspID string, bcastIP net.IP, bm *readBATM
 			if (string(key) == "s") || (string(key) == "S") {
 				// pressed a shield
 				log.Infof("shield pressed!\n")
-				// crwt, _ := allPIs[raspID]
-				// crwt.ShieldTimer := time.Now() // reset shield timer: problem here!!
+
+				now := time.Now()
+				// elapsedTime := now.Sub(crwt.ShieldTimer)
+				// log.Infof("elapsedTime: %v\n", elapsedTime)
+
+				crwt.ShieldTimer = now // reset shield timer:
 				// crwt.ChatRequest.PointDir := 1.0 // reset shield timer: problem here!!
 			}
 

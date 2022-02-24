@@ -6,6 +6,8 @@ require (
 	github.com/goiot/devices v0.0.0-20160708214026-09d1226fc8ea
 	github.com/gordonklaus/portaudio v0.0.0-20200911161147-bb74aa485641
 	github.com/gorilla/websocket v1.5.0
+	github.com/jacobsa/go-serial v0.0.0-20180131005756-15cf729a72d4
+	github.com/johnusher/ardpifi v0.0.0-20220223184852-df6b22ac832b
 	github.com/kpeu3i/bno055 v1.0.3
 	github.com/mattn/go-pointer v0.0.1
 	github.com/mattn/go-tflite v1.0.1
