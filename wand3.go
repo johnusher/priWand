@@ -113,7 +113,7 @@ func (c chatRequestWithTimestamp) String() string {
 var allPIs = map[string]chatRequestWithTimestamp{} // how to make this readable by broadcastLoop??
 
 func main() {
-	raspID := flag.String("rasp-id", "60", "unique raspberry pi ID") // only 2 characters. use last 2 digits of IP
+	raspID := flag.String("rasp-id", "61", "unique raspberry pi ID") // only 2 characters. use last 2 digits of IP
 	webAddr := flag.String("web-addr", ":8080", "address to serve web on")
 	noBatman := flag.Bool("no-batman", false, "run without batman network")
 	noDuino := flag.Bool("no-duino", false, "run without arduino")
@@ -404,6 +404,7 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 
 						// check if my shield is up
 						now := time.Now()
+						crwt, _ := allPIs[raspID]
 						elapsedTime := now.Sub(crwt.ShieldTimer)
 						log.Infof("shield active for: %v\n", elapsedTime)
 
@@ -664,9 +665,17 @@ func broadcastLoop(keys <-chan rune, duino port.Port, raspID string, bcastIP net
 
 				now := time.Now()
 				// elapsedTime := now.Sub(crwt.ShieldTimer)
-				// log.Infof("elapsedTime: %v\n", elapsedTime)
+				// log.Infof("elapsedTime2: %v\n", elapsedTime)
+
+				crwt, _ := allPIs[raspID]
 
 				crwt.ShieldTimer = now // reset shield timer:
+
+				// save to self
+				// crwt, _ := allPIs[raspID]
+				// crwt.PointDir = bearingI // trying to save here but later, it just pulls a zero!
+				allPIs[raspID] = crwt
+
 				// crwt.ChatRequest.PointDir := 1.0 // reset shield timer: problem here!!
 			}
 
