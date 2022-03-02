@@ -78,6 +78,7 @@ const (
 	messageTypeKey    = 2
 	messageTypeButton = 3
 	messageTypeAck    = 4
+	messageTypeHello  = 5
 
 	raspiIDEveryone = "00"
 )
@@ -92,6 +93,7 @@ type ChatRequest struct {
 	PointDir     int64
 	ButtonStatus int64
 	ShieldTimer  time.Time
+	OtherID      string
 }
 
 type chatRequestWithTimestamp struct {
@@ -111,6 +113,8 @@ func (c chatRequestWithTimestamp) String() string {
 }
 
 var allPIs = map[string]chatRequestWithTimestamp{} // how to make this readable by broadcastLoop??
+
+var OtherID = "bob"
 
 func main() {
 	raspID := flag.String("rasp-id", "61", "unique raspberry pi ID") // only 2 characters. use last 2 digits of IP
@@ -390,6 +394,13 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 
 			} else {
 
+				// crwt.OtherID = senderID // set other ID
+				OtherID = senderID // set other ID
+
+				if messageType == messageTypeHello {
+					log.Infof("hello from someone else!\n")
+				}
+
 				if whoFor == raspiIDEveryone || whoFor == raspID { // the strcmp with whoFor doesnt work!!
 					// if message[6] == 0 || whoFor == raspID { // message[6] == 0  means for everyone.
 					// message is not sent by self and is for everyone or for me
@@ -411,9 +422,7 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 						if elapsedTime < 4*time.Second {
 							// shield is up: cancel
 							strMessage = "X"
-
 							// go to cancel routine and return
-
 						}
 
 						if strMessage == "X" || strMessage == "x" {
@@ -537,7 +546,7 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 }
 
 func broadcastLoop(keys <-chan rune, duino port.Port, raspID string, bcastIP net.IP, bm *readBATMAN.ReadBATMAN, img *image.RGBA, oled oled.OLED, gpioCh <-chan gpio.GPIOMessage) error {
-	log.Info("Starting broadcast loop")
+	log.Info("Starting broadcast loop: saying hello")
 
 	// this is for local messages from locl device hw, key-presses, GPIO press, eventually letter-gesture from TF
 
@@ -552,20 +561,41 @@ func broadcastLoop(keys <-chan rune, duino port.Port, raspID string, bcastIP net
 
 	more := false
 
+	// send a quick hello to the BATMAN:
+	buttonmsgSize := 9                         // 32(?) bytes for  a button message
+	bMessageOut := make([]byte, buttonmsgSize) // sent to batman
+
+	copy(bMessageOut[0:2], magicByte)
+	bMessageOut[2] = uint8(buttonmsgSize)
+	copy(bMessageOut[3:5], raspID)
+
+	whoFor := raspiIDEveryone // message for everyone
+	//whoFor := OtherID // for the other ID
+	copy(bMessageOut[5:7], whoFor)
+	log.Infof("whoFor: %s", whoFor)
+	messageType := messageTypeHello // HELLO
+	bMessageOut[7] = uint8(messageType)
+
+	bMessageOut[8] = uint8(5)
+	_, err := bm.Conn.WriteToUDP(bMessageOut, bcast)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
 	for {
 		select {
 
 		case gpioMessage, more = <-gpioCh:
-
+			// receive a button change from gpio
+			// log.Infof("gpio message %v", gpioMessage)
 			if !more {
 				log.Infof("gpio channel closed\n")
 				log.Infof("exiting")
 				return nil
 			}
 
-			// log.Infof("gpio message %v", gpioMessage)
-			// receive a button change from gpio
-
+			// we send a button press to the target on BATMAN
 			buttonmsgSize := 9                         // 32(?) bytes for  a button message
 			bMessageOut := make([]byte, buttonmsgSize) // sent to batman
 
@@ -573,8 +603,12 @@ func broadcastLoop(keys <-chan rune, duino port.Port, raspID string, bcastIP net
 			bMessageOut[2] = uint8(buttonmsgSize)
 			copy(bMessageOut[3:5], raspID)
 
-			whoFor := raspiIDEveryone // message for everyone
+			// whoFor := raspiIDEveryone // message for everyone
+			// whoFor := crwt.OtherID // for the other ID
+			whoFor := OtherID // for the other ID
+
 			copy(bMessageOut[5:7], whoFor)
+			log.Infof("whoFor: %s", whoFor)
 
 			messageType := messageTypeButton // GPIO
 			bMessageOut[7] = uint8(messageType)
