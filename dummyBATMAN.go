@@ -229,7 +229,7 @@ func receiveBATMAN(messages <-chan []byte, raspID string, web *web.Web, bcastIP 
 	// allPIs := map[string]chatRequestWithTimestamp{}  // how to make this readable by broadcastLoop??
 
 	// accMessage := acc.ACCMessage{}
-	// bcast := &net.UDPAddr{Port: batPort, IP: bcastIP}
+	bcast := &net.UDPAddr{Port: batPort, IP: bcastIP}
 
 	crwt, _ := allPIs[raspID]
 	crwt.ButtonStatus = 0 // init button status to button up: for some reason this should be a 1 for up but ...
@@ -266,6 +266,28 @@ func receiveBATMAN(messages <-chan []byte, raspID string, web *web.Web, bcastIP 
 
 				if messageType == messageTypeHello {
 					log.Infof("hello from someone else!\n")
+
+					// send hello back
+					buttonmsgSize := 9                         // 32(?) bytes for  a hello message
+					bMessageOut := make([]byte, buttonmsgSize) // sent to batman
+					copy(bMessageOut[0:2], magicByte)
+					bMessageOut[2] = uint8(buttonmsgSize)
+					copy(bMessageOut[3:5], raspID)
+
+					whoFor := raspiIDEveryone // message for everyone
+					//whoFor := OtherID // for the other ID
+					copy(bMessageOut[5:7], whoFor)
+					log.Infof("whoFor: %s", whoFor)
+					messageType := messageTypeHello // HELLO
+					bMessageOut[7] = uint8(messageType)
+
+					bMessageOut[8] = uint8(5)
+					_, err := bm.Conn.WriteToUDP(bMessageOut, bcast)
+					if err != nil {
+						log.Error(err)
+						return err
+					}
+
 				}
 
 				if whoFor == raspiIDEveryone || whoFor == raspID { // the strcmp with whoFor doesnt work!!
@@ -379,7 +401,7 @@ func broadcastLoop(keys <-chan rune, raspID string, bcastIP net.IP, bm *readBATM
 	crwt, _ := allPIs[raspID]
 	crwt.ShieldTimer = time.Now() // reset shield timer
 
-	// send a quick hello to the BATMAN:
+	// // send a quick hello to the BATMAN:
 	buttonmsgSize := 9                         // 32(?) bytes for  a hello message
 	bMessageOut := make([]byte, buttonmsgSize) // sent to batman
 	copy(bMessageOut[0:2], magicByte)
@@ -470,3 +492,27 @@ func broadcastLoop(keys <-chan rune, raspID string, bcastIP net.IP, bm *readBATM
 		}
 	}
 }
+
+// func sayHello() xx {
+// 	// send a quick hello to the BATMAN:
+// 	buttonmsgSize := 9                         // 32(?) bytes for  a hello message
+// 	bMessageOut := make([]byte, buttonmsgSize) // sent to batman
+// 	copy(bMessageOut[0:2], magicByte)
+// 	bMessageOut[2] = uint8(buttonmsgSize)
+// 	copy(bMessageOut[3:5], raspID)
+
+// 	whoFor := raspiIDEveryone // message for everyone
+// 	//whoFor := OtherID // for the other ID
+// 	copy(bMessageOut[5:7], whoFor)
+// 	log.Infof("whoFor: %s", whoFor)
+// 	messageType := messageTypeHello // HELLO
+// 	bMessageOut[7] = uint8(messageType)
+
+// 	bMessageOut[8] = uint8(5)
+// 	_, err := bm.Conn.WriteToUDP(bMessageOut, bcast)
+// 	if err != nil {
+// 		log.Error(err)
+// 		return err
+// 	}
+
+// }

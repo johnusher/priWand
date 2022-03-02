@@ -399,6 +399,26 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 
 				if messageType == messageTypeHello {
 					log.Infof("hello from someone else!\n")
+					// send hello back
+					buttonmsgSize := 9                         // 32(?) bytes for  a hello message
+					bMessageOut := make([]byte, buttonmsgSize) // sent to batman
+					copy(bMessageOut[0:2], magicByte)
+					bMessageOut[2] = uint8(buttonmsgSize)
+					copy(bMessageOut[3:5], raspID)
+
+					whoFor := raspiIDEveryone // message for everyone
+					//whoFor := OtherID // for the other ID
+					copy(bMessageOut[5:7], whoFor)
+					log.Infof("whoFor: %s", whoFor)
+					messageType := messageTypeHello // HELLO
+					bMessageOut[7] = uint8(messageType)
+
+					bMessageOut[8] = uint8(5)
+					_, err := bm.Conn.WriteToUDP(bMessageOut, bcast)
+					if err != nil {
+						log.Error(err)
+						return err
+					}
 				}
 
 				if whoFor == raspiIDEveryone || whoFor == raspID { // the strcmp with whoFor doesnt work!!
@@ -562,9 +582,8 @@ func broadcastLoop(keys <-chan rune, duino port.Port, raspID string, bcastIP net
 	more := false
 
 	// send a quick hello to the BATMAN:
-	buttonmsgSize := 9                         // 32(?) bytes for  a button message
+	buttonmsgSize := 9                         // 32(?) bytes for  a hello message
 	bMessageOut := make([]byte, buttonmsgSize) // sent to batman
-
 	copy(bMessageOut[0:2], magicByte)
 	bMessageOut[2] = uint8(buttonmsgSize)
 	copy(bMessageOut[3:5], raspID)
@@ -780,3 +799,29 @@ func Abs(x int64) int64 {
 	}
 	return x
 }
+
+
+
+func sayHello() xx {
+	// 	// send a quick hello to the BATMAN:
+	// 	buttonmsgSize := 9                         // 32(?) bytes for  a hello message
+	// 	bMessageOut := make([]byte, buttonmsgSize) // sent to batman
+	// 	copy(bMessageOut[0:2], magicByte)
+	// 	bMessageOut[2] = uint8(buttonmsgSize)
+	// 	copy(bMessageOut[3:5], raspID)
+	
+	// 	whoFor := raspiIDEveryone // message for everyone
+	// 	//whoFor := OtherID // for the other ID
+	// 	copy(bMessageOut[5:7], whoFor)
+	// 	log.Infof("whoFor: %s", whoFor)
+	// 	messageType := messageTypeHello // HELLO
+	// 	bMessageOut[7] = uint8(messageType)
+	
+	// 	bMessageOut[8] = uint8(5)
+	// 	_, err := bm.Conn.WriteToUDP(bMessageOut, bcast)
+	// 	if err != nil {
+	// 		log.Error(err)
+	// 		return err
+	// 	}
+	
+	// }
