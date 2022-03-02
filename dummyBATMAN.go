@@ -229,7 +229,7 @@ func receiveBATMAN(messages <-chan []byte, raspID string, web *web.Web, bcastIP 
 	// allPIs := map[string]chatRequestWithTimestamp{}  // how to make this readable by broadcastLoop??
 
 	// accMessage := acc.ACCMessage{}
-	bcast := &net.UDPAddr{Port: batPort, IP: bcastIP}
+	// bcast := &net.UDPAddr{Port: batPort, IP: bcastIP}
 
 	crwt, _ := allPIs[raspID]
 	crwt.ButtonStatus = 0 // init button status to button up: for some reason this should be a 1 for up but ...
@@ -254,6 +254,8 @@ func receiveBATMAN(messages <-chan []byte, raspID string, web *web.Web, bcastIP 
 			senderID := string(message[3:5]) // this is length of raspID = 2 bytes
 			whoFor := string(message[5:7])   // whoFor is also length of raspID = 2 bytes
 			messageType := message[7]
+
+			log.Infof("senderID %s \n", senderID)
 
 			if senderID == raspID {
 				// from self: ignore
@@ -318,12 +320,12 @@ func receiveBATMAN(messages <-chan []byte, raspID string, web *web.Web, bcastIP 
 						sendMessage := rune('1')
 						messageOut[8] = uint8(sendMessage)
 
-						_, err := bm.Conn.WriteToUDP(messageOut, bcast)
+						// _, err := bm.Conn.WriteToUDP(messageOut, bcast)
 
-						if err != nil {
-							log.Errorf("failed to send ack on BM: %s", err)
-							return err
-						}
+						// if err != nil {
+						// 	log.Errorf("failed to send ack on BM: %s", err)
+						// 	return err
+						// }
 
 					}
 				}
@@ -441,6 +443,7 @@ func broadcastLoop(keys <-chan rune, raspID string, bcastIP net.IP, bm *readBATM
 			copy(messageOut[3:5], raspID)
 
 			whoFor := raspiIDEveryone // everyone
+
 			copy(messageOut[5:7], whoFor)
 
 			//messageType := messageTypeDuino // duino message
