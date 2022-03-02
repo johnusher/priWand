@@ -54,9 +54,9 @@ const (
 	messageTypeKey    = 2
 	messageTypeButton = 3
 	messageTypeAck    = 4
-	messageTypeHello  = 5
-
-	raspiIDEveryone = "00"
+	messageTypeHelloA = 5
+	messageTypeHelloR = 5
+	raspiIDEveryone   = "00"
 )
 
 // ChatRequest is ChatRequest, stop telling me about comments
@@ -264,7 +264,7 @@ func receiveBATMAN(messages <-chan []byte, raspID string, web *web.Web, bcastIP 
 
 				OtherID = senderID // set other ID
 
-				if messageType == messageTypeHello {
+				if messageType == messageTypeHelloA {
 					log.Infof("hello from someone else!\n")
 
 					// send hello back
@@ -278,7 +278,7 @@ func receiveBATMAN(messages <-chan []byte, raspID string, web *web.Web, bcastIP 
 					//whoFor := OtherID // for the other ID
 					copy(bMessageOut[5:7], whoFor)
 					log.Infof("whoFor: %s", whoFor)
-					messageType := messageTypeHello // HELLO
+					messageType := messageTypeHelloR // HELLO
 					bMessageOut[7] = uint8(messageType)
 
 					bMessageOut[8] = uint8(5)
@@ -412,7 +412,7 @@ func broadcastLoop(keys <-chan rune, raspID string, bcastIP net.IP, bm *readBATM
 	//whoFor := OtherID // for the other ID
 	copy(bMessageOut[5:7], whoFor)
 	log.Infof("whoFor: %s", whoFor)
-	messageType := messageTypeHello // HELLO
+	messageType := messageTypeHelloA // HELLO Announce
 	bMessageOut[7] = uint8(messageType)
 
 	bMessageOut[8] = uint8(5)

@@ -78,9 +78,9 @@ const (
 	messageTypeKey    = 2
 	messageTypeButton = 3
 	messageTypeAck    = 4
-	messageTypeHello  = 5
-
-	raspiIDEveryone = "00"
+	messageTypeHelloA = 5
+	messageTypeHelloR = 6
+	raspiIDEveryone   = "00"
 )
 
 // ChatRequest is ChatRequest, stop telling me about comments
@@ -397,7 +397,7 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 				// crwt.OtherID = senderID // set other ID
 				OtherID = senderID // set other ID
 
-				if messageType == messageTypeHello {
+				if messageType == messageTypeHelloA {
 					log.Infof("hello from someone else!\n")
 					// send hello back
 					buttonmsgSize := 9                         // 32(?) bytes for  a hello message
@@ -410,7 +410,7 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 					//whoFor := OtherID // for the other ID
 					copy(bMessageOut[5:7], whoFor)
 					log.Infof("whoFor: %s", whoFor)
-					messageType := messageTypeHello // HELLO
+					messageType := messageTypeHelloR // HELLO
 					bMessageOut[7] = uint8(messageType)
 
 					bMessageOut[8] = uint8(5)
@@ -592,7 +592,7 @@ func broadcastLoop(keys <-chan rune, duino port.Port, raspID string, bcastIP net
 	//whoFor := OtherID // for the other ID
 	copy(bMessageOut[5:7], whoFor)
 	log.Infof("whoFor: %s", whoFor)
-	messageType := messageTypeHello // HELLO
+	messageType := messageTypeHelloA // HELLO Announce
 	bMessageOut[7] = uint8(messageType)
 
 	bMessageOut[8] = uint8(5)
@@ -800,28 +800,26 @@ func Abs(x int64) int64 {
 	return x
 }
 
+// func sayHello() xx {
+// 	// send a quick hello to the BATMAN:
+// 	buttonmsgSize := 9                         // 32(?) bytes for  a hello message
+// 	bMessageOut := make([]byte, buttonmsgSize) // sent to batman
+// 	copy(bMessageOut[0:2], magicByte)
+// 	bMessageOut[2] = uint8(buttonmsgSize)
+// 	copy(bMessageOut[3:5], raspID)
 
+// 	whoFor := raspiIDEveryone // message for everyone
+// 	//whoFor := OtherID // for the other ID
+// 	copy(bMessageOut[5:7], whoFor)
+// 	log.Infof("whoFor: %s", whoFor)
+// 	messageType := messageTypeHello // HELLO
+// 	bMessageOut[7] = uint8(messageType)
 
-func sayHello() xx {
-	// 	// send a quick hello to the BATMAN:
-	// 	buttonmsgSize := 9                         // 32(?) bytes for  a hello message
-	// 	bMessageOut := make([]byte, buttonmsgSize) // sent to batman
-	// 	copy(bMessageOut[0:2], magicByte)
-	// 	bMessageOut[2] = uint8(buttonmsgSize)
-	// 	copy(bMessageOut[3:5], raspID)
-	
-	// 	whoFor := raspiIDEveryone // message for everyone
-	// 	//whoFor := OtherID // for the other ID
-	// 	copy(bMessageOut[5:7], whoFor)
-	// 	log.Infof("whoFor: %s", whoFor)
-	// 	messageType := messageTypeHello // HELLO
-	// 	bMessageOut[7] = uint8(messageType)
-	
-	// 	bMessageOut[8] = uint8(5)
-	// 	_, err := bm.Conn.WriteToUDP(bMessageOut, bcast)
-	// 	if err != nil {
-	// 		log.Error(err)
-	// 		return err
-	// 	}
-	
-	// }
+// 	bMessageOut[8] = uint8(5)
+// 	_, err := bm.Conn.WriteToUDP(bMessageOut, bcast)
+// 	if err != nil {
+// 		log.Error(err)
+// 		return err
+// 	}
+
+// }
