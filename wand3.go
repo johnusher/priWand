@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"strconv"
 
 	"net"
 	"os"
@@ -81,6 +82,9 @@ const (
 	messageTypeHelloA = 5
 	messageTypeHelloR = 6
 	raspiIDEveryone   = "00"
+
+	animalTypeCats = 0
+	animalTypeDogs = 1
 )
 
 // ChatRequest is ChatRequest, stop telling me about comments
@@ -112,9 +116,11 @@ func (c chatRequestWithTimestamp) String() string {
 	return fmt.Sprintf("[%s, age: %s]", c.ChatRequest, time.Now().Sub(c.lastMessageReceived))
 }
 
-var allPIs = map[string]chatRequestWithTimestamp{} // how to make this readable by broadcastLoop??
+var allPIs = map[string]chatRequestWithTimestamp{}
 
 var OtherID = "bob"
+
+var animalFlag int = 0
 
 func main() {
 	raspID := flag.String("rasp-id", "61", "unique raspberry pi ID") // only 2 characters. use last 2 digits of IP
@@ -140,6 +146,17 @@ func main() {
 	// make raspID into 2 bytes: take first 2 letter if needed:
 
 	*raspID = (*raspID)[0:2]
+
+	oddeven, _ := strconv.ParseInt((*raspID)[1:2], 16, 32)
+	// log.Infof("oddeven: %v", oddeven)
+
+	if oddeven%2 == 0 {
+		log.Infof("KATZ")
+		animalFlag = animalTypeCats
+	} else {
+		log.Infof("DOGZ")
+		animalFlag = animalTypeDogs
+	}
 
 	// OLED:
 
@@ -544,12 +561,13 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 			allPIs[senderID] = crwt
 
 			// remove any PIs we haven't heard from in a while
-			for k, v := range allPIs {
-				if v.lastMessageReceived.Add(piTTL).Before(now) {
-					log.Infof("deleting expired pi: %+v", v)
-					delete(allPIs, k)
-				}
-			}
+			// dont do this for just 2!
+			// for k, v := range allPIs {
+			// 	if v.lastMessageReceived.Add(piTTL).Before(now) {
+			// 		log.Infof("deleting expired pi: %+v", v)
+			// 		delete(allPIs, k)
+			// 	}
+			// }
 
 			log.Infof("current PIs: %d", len(allPIs))
 			for _, v := range allPIs {

@@ -12,6 +12,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"strconv"
 
 	// "math/rand"
 	"net"
@@ -57,6 +58,9 @@ const (
 	messageTypeHelloA = 5
 	messageTypeHelloR = 6
 	raspiIDEveryone   = "00"
+
+	animalTypeCats = 0
+	animalTypeDogs = 1
 )
 
 // ChatRequest is ChatRequest, stop telling me about comments
@@ -79,6 +83,8 @@ type chatRequestWithTimestamp struct {
 var allPIs = map[string]chatRequestWithTimestamp{} // how to make this readable by broadcastLoop??
 
 var OtherID = "bob"
+
+var animalFlag int = 0
 
 // String satisfies the Stringer interface
 func (c ChatRequest) String() string {
@@ -115,6 +121,17 @@ func main() {
 	// make raspID into 2 bytes: take first 2 letter if needed:
 
 	*raspID = (*raspID)[0:2]
+
+	oddeven, _ := strconv.ParseInt((*raspID)[1:2], 16, 32)
+	// log.Infof("oddeven: %v", oddeven)
+
+	if oddeven%2 == 0 {
+		log.Infof("KATZ")
+		animalFlag = animalTypeCats
+	} else {
+		log.Infof("DOGZ")
+		animalFlag = animalTypeDogs
+	}
 
 	// now start web broadcast
 
@@ -370,12 +387,13 @@ func receiveBATMAN(messages <-chan []byte, raspID string, web *web.Web, bcastIP 
 			allPIs[senderID] = crwt
 
 			// remove any PIs we haven't heard from in a while
-			for k, v := range allPIs {
-				if v.lastMessageReceived.Add(piTTL).Before(now) {
-					log.Infof("deleting expired pi: %+v", v)
-					delete(allPIs, k)
-				}
-			}
+			// dont do this for just 2!
+			// for k, v := range allPIs {
+			// 	if v.lastMessageReceived.Add(piTTL).Before(now) {
+			// 		log.Infof("deleting expired pi: %+v", v)
+			// 		delete(allPIs, k)
+			// 	}
+			// }
 
 			log.Infof("current PIs: %d", len(allPIs))
 			for _, v := range allPIs {
