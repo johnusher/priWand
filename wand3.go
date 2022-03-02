@@ -407,11 +407,8 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 					copy(bMessageOut[3:5], raspID)
 
 					whoFor := raspiIDEveryone // message for everyone
-					//whoFor := OtherID // for the other ID
 					copy(bMessageOut[5:7], whoFor)
-					log.Infof("whoFor: %s", whoFor)
-					messageType := messageTypeHelloR // HELLO
-					bMessageOut[7] = uint8(messageType)
+					bMessageOut[7] = uint8(messageTypeHelloR) // messageTypeHelloR reply
 
 					bMessageOut[8] = uint8(5)
 					_, err := bm.Conn.WriteToUDP(bMessageOut, bcast)
@@ -421,7 +418,7 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 					}
 				}
 
-				if whoFor == raspiIDEveryone || whoFor == raspID { // the strcmp with whoFor doesnt work!!
+				if (whoFor == raspiIDEveryone || whoFor == raspID) && (messageType != messageTypeAck) { // the strcmp with whoFor doesnt work!!
 					// if message[6] == 0 || whoFor == raspID { // message[6] == 0  means for everyone.
 					// message is not sent by self and is for everyone or for me
 
@@ -442,7 +439,6 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 						if elapsedTime < 4*time.Second {
 							// shield is up: cancel
 							strMessage = "X"
-							// go to cancel routine and return
 						}
 
 						if strMessage == "X" || strMessage == "x" {
