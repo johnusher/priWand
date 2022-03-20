@@ -1,8 +1,18 @@
 % feb22
-% all draw letter L
+% IMU data recorded uisng test_save_IMU.go
+% IMU unit: X is forward, Y to right,Z up
+% record quaternions, gravity and euler data
+% quats is w,x,y,z
+% gavity is x,y,z
+% euler is Bearing, Roll, Tilt
+
+
+
+% all recordings draw letter L
 % 1-5: button up, pointing south
 % 5-10: button left, pointing south
 % 11-15: button up, pointing west
+
 
 clear all
 
@@ -35,37 +45,59 @@ for d = 1:nMeasurements
     dn=(measurements(d).name)
     
     cd(dn)
-        
+    
+    %% read in quat data, gravity, and euler
+    % quats is w,x,y,z
+% gavity is x,y,z
+
+
     fn = 'quat_data.txt';
     X=importdata(fn,'%s');
-    
-    cd ..
-    
-    %     dataL = length(X)*0.99
-    dataL = length(X);
-    
+    dataL_Quat = length(X);
     quat = [];
-    for i = startInd:dataL
+    for i = startInd:dataL_Quat
         quat(i-startInd+1,:) = str2num(cell2mat(X(i)));
     end
-    
-    dataL = floor(dataL-startInd+1);
-    
+    dataL_Quat = floor(dataL_Quat-startInd+1);
     
     
+    fn = 'euler_data.txt';
+    % euler is Bearing, Roll, Tilt
+    X = importdata(fn,'%s');
+    dataL_Euler = length(X);
+    euler = [];
+    for i = startInd:dataL_Euler
+        euler(i-startInd+1,:) = str2num(cell2mat(X(i)));
+    end
+    dataL_Euler = floor(dataL_Euler-startInd+1);
+    
+    fn = 'gravity_data.txt';
+    X = importdata(fn,'%s');
+    dataL_Gravity_ = length(X);
+    gravity = [];
+    for i = startInd:dataL_Euler
+        gravity(i-startInd+1,:) = str2num(cell2mat(X(i)));
+    end
+    dataL_Gravity_ = floor(dataL_Gravity_-startInd+1);
+    
+    
+    %%
+    cd ..
+    
+    %% now process quats
     
     %% step 1.
     % continuously as we received quat data from the imu:
     %     for each new quat, calc rotation = 3x3 matrix
     
     
-    %     quat2rotm_ = zeros(3,3,dataL);
+    %     quat2rotm_ = zeros(3,3,dataL_Quat);
     %     quat2rotm_JU
     
     
-    projected = zeros(dataL,3);
+    projected = zeros(dataL_Quat,3);
     
-    for n=1:dataL
+    for n=1:dataL_Quat
         
         s = quat(n,1);
         x = quat(n,2);
@@ -93,7 +125,7 @@ for d = 1:nMeasurements
     
     % %     % 2. convert each 3x3 matrix into 3x1 projecton
     %     projected = [];
-    %     for n=1:dataL
+    %     for n=1:dataL_Quat
     %         projected(n,:) = quat2rotm_(:,:,n) * [1 0 0]';  % first column
     %     end
     
@@ -102,7 +134,7 @@ for d = 1:nMeasurements
     %% step 3. when we have stopped recording data: average of projected
     
     centre = mean(projected, 1);
-        
+    
     
     %% step 4: norm-centre
     
@@ -154,26 +186,26 @@ for d = 1:nMeasurements
     %% step 7: x and y corrodinates:
     
     %     projected2 = [];
-    %     for n=1:dataL
+    %     for n=1:dataL_Quat
     %         projected2(n,:) = [x_direction y_direction]' * projected(n, :)';
     %     end
     %     x = projected2(:, 1);
     %     y = projected2(:, 2);
     
-    x = zeros(dataL,1);
-    y = zeros(dataL,1);
+    x = zeros(dataL_Quat,1);
+    y = zeros(dataL_Quat,1);
     
     pCP = 1.09;
     pCN = 1/pCP;
-    for n=1:dataL
+    for n=1:dataL_Quat
         
         x(n) = x_direction(1)* projected(n, 1) + x_direction(2)* projected(n, 2)  + x_direction(3)* projected(n, 3) ;
         y(n) = y_direction(1)* projected(n, 1) + y_direction(2)* projected(n, 2)  + y_direction(3)* projected(n, 3) ;
         
-        %          x(n+dataL) = x(n)*pCP;
-        %          x(n+dataL+1) = x(n)*pCN;
+        %          x(n+dataL_Quat) = x(n)*pCP;
+        %          x(n+dataL_Quat+1) = x(n)*pCN;
         
-        %          y(n+dataL) = y(n)*pCP;
+        %          y(n+dataL_Quat) = y(n)*pCP;
         %          y(n+2) = y(n)*pCN;
         
         %          if n==1
@@ -189,7 +221,7 @@ for d = 1:nMeasurements
         
     end
     
-    dataL = length(x);
+    dataL_Quat = length(x);
     
     
     % scale
@@ -232,7 +264,7 @@ for d = 1:nMeasurements
     y_int = round(y*m_y/2);
     
     
-    for n=1:dataL
+    for n=1:dataL_Quat
         x_int_d = x_int(n)+m_x/2 + 1;
         y_int_d = y_int(n)+m_y/2 + 1;
         
@@ -246,8 +278,7 @@ for d = 1:nMeasurements
     imshow(I)
     
     
-    
-    
+         
     %     cd('C:\Users\john\Documents\Arduino\ardpifi\letters')
     %     fn = [int2str(d) '_O.bmp']
     %     imwrite(I,fn)
