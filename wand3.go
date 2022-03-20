@@ -8,7 +8,8 @@
 
 // key press Q to quit
 
-// pi4: go run wand3.go -rasp-id=67 --web-addr :8082 -log-level debug
+// pi4: go run wand3.go -rasp-id=68 --web-addr :8082 -log-level debug
+// pi4: go run wand3.go -rasp-id=68 --web-addr :8082 -no-batman -log-level debug
 
 // push from 4->3:
 // rsync -a wand2.go pi@192.168.1.166:code/go/src/github.com/johnusher/priWand/
@@ -20,6 +21,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"strconv"
 
 	"net"
 	"os"
@@ -77,8 +79,12 @@ const (
 	messageTypeKey    = 2
 	messageTypeButton = 3
 	messageTypeAck    = 4
+	messageTypeHelloA = 5
+	messageTypeHelloR = 6
+	raspiIDEveryone   = "00"
 
-	raspiIDEveryone = "00"
+	animalTypeCats = 0
+	animalTypeDogs = 1
 )
 
 // ChatRequest is ChatRequest, stop telling me about comments
@@ -90,6 +96,8 @@ type ChatRequest struct {
 	Key          rune
 	PointDir     int64
 	ButtonStatus int64
+	ShieldTimer  time.Time
+	OtherID      string
 }
 
 type chatRequestWithTimestamp struct {
@@ -100,7 +108,7 @@ type chatRequestWithTimestamp struct {
 // String satisfies the Stringer interface
 func (c ChatRequest) String() string {
 	// return fmt.Sprintf("id: %s, coords: (%f, %f), HDOP: %.2f", c.ID, c.Latf, c.Longf, c.HDOPf)
-	return fmt.Sprintf("[%s,]", c.ID)
+	return fmt.Sprintf("%s", c.ID)
 }
 
 // String satisfies the Stringer interface
@@ -108,8 +116,14 @@ func (c chatRequestWithTimestamp) String() string {
 	return fmt.Sprintf("[%s, age: %s]", c.ChatRequest, time.Now().Sub(c.lastMessageReceived))
 }
 
+var allPIs = map[string]chatRequestWithTimestamp{}
+
+var OtherID = "bob"
+
+var animalFlag int = 0
+
 func main() {
-	raspID := flag.String("rasp-id", "60", "unique raspberry pi ID") // only 2 characters. use last 2 digits of IP
+	raspID := flag.String("rasp-id", "61", "unique raspberry pi ID") // only 2 characters. use last 2 digits of IP
 	webAddr := flag.String("web-addr", ":8080", "address to serve web on")
 	noBatman := flag.Bool("no-batman", false, "run without batman network")
 	noDuino := flag.Bool("no-duino", false, "run without arduino")
@@ -132,6 +146,17 @@ func main() {
 	// make raspID into 2 bytes: take first 2 letter if needed:
 
 	*raspID = (*raspID)[0:2]
+
+	oddeven, _ := strconv.ParseInt((*raspID)[1:2], 16, 32)
+	// log.Infof("oddeven: %v", oddeven)
+
+	if oddeven%2 == 0 {
+		log.Infof("KATZ")
+		animalFlag = animalTypeCats
+	} else {
+		log.Infof("DOGZ")
+		animalFlag = animalTypeDogs
+	}
 
 	// OLED:
 
@@ -355,7 +380,7 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 	// listen for new incoming BATMAN message
 	// allPIs keeps track of the last message received from each PI, keyed by
 	// raspID
-	allPIs := map[string]chatRequestWithTimestamp{}
+	// allPIs := map[string]chatRequestWithTimestamp{}
 	// accMessage := acc.ACCMessage{}
 	bcast := &net.UDPAddr{Port: batPort, IP: bcastIP}
 
@@ -386,7 +411,31 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 
 			} else {
 
-				if whoFor == raspiIDEveryone || whoFor == raspID { // the strcmp with whoFor doesnt work!!
+				// crwt.OtherID = senderID // set other ID
+				OtherID = senderID // set other ID
+
+				if messageType == messageTypeHelloA {
+					log.Infof("hello from someone else!\n")
+					// send hello back
+					buttonmsgSize := 9                         // 32(?) bytes for  a hello message
+					bMessageOut := make([]byte, buttonmsgSize) // sent to batman
+					copy(bMessageOut[0:2], magicByte)
+					bMessageOut[2] = uint8(buttonmsgSize)
+					copy(bMessageOut[3:5], raspID)
+
+					whoFor := raspiIDEveryone // message for everyone
+					copy(bMessageOut[5:7], whoFor)
+					bMessageOut[7] = uint8(messageTypeHelloR) // messageTypeHelloR reply
+
+					bMessageOut[8] = uint8(5)
+					_, err := bm.Conn.WriteToUDP(bMessageOut, bcast)
+					if err != nil {
+						log.Error(err)
+						return err
+					}
+				}
+
+				if (whoFor == raspiIDEveryone || whoFor == raspID) && (messageType != messageTypeAck) { // the strcmp with whoFor doesnt work!!
 					// if message[6] == 0 || whoFor == raspID { // message[6] == 0  means for everyone.
 					// message is not sent by self and is for everyone or for me
 
@@ -397,15 +446,30 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 						keyMessagek := message[8] // we should maybe look at total message legnth and combine other bytes if longer than 7
 
 						strMessage := string(keyMessagek)
+
+						// check if my shield is up
+						now := time.Now()
+						crwt, _ := allPIs[raspID]
+						elapsedTime := now.Sub(crwt.ShieldTimer)
+						log.Infof("shield active for: %v\n", elapsedTime)
+
+						if elapsedTime < 4*time.Second {
+							// shield is up: cancel
+							strMessage = "X"
+						}
+
+						if strMessage == "X" || strMessage == "x" {
+							// play shield up sound
+							gp.PlayWav("fart.wav") // play shield up wav
+						}
+
 						// check message and play sound immediately:
 
 						if strMessage == "D" || strMessage == "d" {
 							woofFN := rand.Int31n(9) + 1
 							catcat2 := fmt.Sprintf("bark%d.wav", woofFN)
-
 							// gp.PlayWav("bark1.wav") // play wav
 							gp.PlayWav(catcat2) // play wav
-
 						}
 
 						if strMessage == "C" || strMessage == "c" {
@@ -413,7 +477,6 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 							// catcat2 := fmt.Sprintf("meow_%d.wav", catFN)
 							// catcat2 := fmt.Sprintf("meow_%d.wav", catFN)
 							gp.PlayWav("meow_3.wav") // play wav
-
 						}
 
 						// duino command: send straight to duino
@@ -498,12 +561,13 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 			allPIs[senderID] = crwt
 
 			// remove any PIs we haven't heard from in a while
-			for k, v := range allPIs {
-				if v.lastMessageReceived.Add(piTTL).Before(now) {
-					log.Infof("deleting expired pi: %+v", v)
-					delete(allPIs, k)
-				}
-			}
+			// dont do this for just 2!
+			// for k, v := range allPIs {
+			// 	if v.lastMessageReceived.Add(piTTL).Before(now) {
+			// 		log.Infof("deleting expired pi: %+v", v)
+			// 		delete(allPIs, k)
+			// 	}
+			// }
 
 			log.Infof("current PIs: %d", len(allPIs))
 			for _, v := range allPIs {
@@ -516,11 +580,14 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 }
 
 func broadcastLoop(keys <-chan rune, duino port.Port, raspID string, bcastIP net.IP, bm *readBATMAN.ReadBATMAN, img *image.RGBA, oled oled.OLED, gpioCh <-chan gpio.GPIOMessage) error {
-	log.Info("Starting broadcast loop")
+	log.Info("Starting broadcast loop: saying hello")
 
 	// this is for local messages from locl device hw, key-presses, GPIO press, eventually letter-gesture from TF
 
 	bcast := &net.UDPAddr{Port: batPort, IP: bcastIP}
+
+	crwt, _ := allPIs[raspID]
+	crwt.ShieldTimer = time.Now() // reset shield timer
 
 	// buttonDown := false
 	n := 0 // counts how long we have button down
@@ -528,20 +595,40 @@ func broadcastLoop(keys <-chan rune, duino port.Port, raspID string, bcastIP net
 
 	more := false
 
+	// send a quick hello to the BATMAN:
+	buttonmsgSize := 9                         // 32(?) bytes for  a hello message
+	bMessageOut := make([]byte, buttonmsgSize) // sent to batman
+	copy(bMessageOut[0:2], magicByte)
+	bMessageOut[2] = uint8(buttonmsgSize)
+	copy(bMessageOut[3:5], raspID)
+
+	whoFor := raspiIDEveryone // message for everyone
+	//whoFor := OtherID // for the other ID
+	copy(bMessageOut[5:7], whoFor)
+	log.Infof("whoFor: %s", whoFor)
+	messageType := messageTypeHelloA // HELLO Announce
+	bMessageOut[7] = uint8(messageType)
+
+	bMessageOut[8] = uint8(5)
+	_, err := bm.Conn.WriteToUDP(bMessageOut, bcast)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
 	for {
 		select {
 
 		case gpioMessage, more = <-gpioCh:
-
+			// receive a button change from gpio
+			// log.Infof("gpio message %v", gpioMessage)
 			if !more {
 				log.Infof("gpio channel closed\n")
 				log.Infof("exiting")
 				return nil
 			}
 
-			// log.Infof("gpio message %v", gpioMessage)
-			// receive a button change from gpio
-
+			// we send a button press to the target on BATMAN
 			buttonmsgSize := 9                         // 32(?) bytes for  a button message
 			bMessageOut := make([]byte, buttonmsgSize) // sent to batman
 
@@ -549,8 +636,12 @@ func broadcastLoop(keys <-chan rune, duino port.Port, raspID string, bcastIP net
 			bMessageOut[2] = uint8(buttonmsgSize)
 			copy(bMessageOut[3:5], raspID)
 
-			whoFor := raspiIDEveryone // message for everyone
+			// whoFor := raspiIDEveryone // message for everyone
+			// whoFor := crwt.OtherID // for the other ID
+			whoFor := OtherID // for the other ID
+
 			copy(bMessageOut[5:7], whoFor)
+			log.Infof("whoFor: %s", whoFor)
 
 			messageType := messageTypeButton // GPIO
 			bMessageOut[7] = uint8(messageType)
@@ -635,6 +726,26 @@ func broadcastLoop(keys <-chan rune, duino port.Port, raspID string, bcastIP net
 			// 1 byte:  <message type (0=gps, 1=duino command, 2=gesture type)>
 			// 1 byte:  key
 
+			if (string(key) == "s") || (string(key) == "S") {
+				// pressed a shield
+				log.Infof("shield pressed!\n")
+
+				now := time.Now()
+				// elapsedTime := now.Sub(crwt.ShieldTimer)
+				// log.Infof("elapsedTime2: %v\n", elapsedTime)
+
+				crwt, _ := allPIs[raspID]
+
+				crwt.ShieldTimer = now // reset shield timer:
+
+				// save to self
+				// crwt, _ := allPIs[raspID]
+				// crwt.PointDir = bearingI // trying to save here but later, it just pulls a zero!
+				allPIs[raspID] = crwt
+
+				// crwt.ChatRequest.PointDir := 1.0 // reset shield timer: problem here!!
+			}
+
 			duinoMsgSize := 9                        // 23 bytes for a duino message
 			messageOut := make([]byte, duinoMsgSize) // sent to batman
 
@@ -702,3 +813,27 @@ func Abs(x int64) int64 {
 	}
 	return x
 }
+
+// func sayHello() xx {
+// 	// send a quick hello to the BATMAN:
+// 	buttonmsgSize := 9                         // 32(?) bytes for  a hello message
+// 	bMessageOut := make([]byte, buttonmsgSize) // sent to batman
+// 	copy(bMessageOut[0:2], magicByte)
+// 	bMessageOut[2] = uint8(buttonmsgSize)
+// 	copy(bMessageOut[3:5], raspID)
+
+// 	whoFor := raspiIDEveryone // message for everyone
+// 	//whoFor := OtherID // for the other ID
+// 	copy(bMessageOut[5:7], whoFor)
+// 	log.Infof("whoFor: %s", whoFor)
+// 	messageType := messageTypeHello // HELLO
+// 	bMessageOut[7] = uint8(messageType)
+
+// 	bMessageOut[8] = uint8(5)
+// 	_, err := bm.Conn.WriteToUDP(bMessageOut, bcast)
+// 	if err != nil {
+// 		log.Error(err)
+// 		return err
+// 	}
+
+// }

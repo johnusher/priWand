@@ -1,9 +1,13 @@
+go.mod
+go.sum
 
 # Specific binaries
 GPIOTEST
 test_quats_64_to_py_tf
 wand1
 wand2
+JU_led_mesh
+test_GPIO2
 
 # JPEG
 *.jpg
