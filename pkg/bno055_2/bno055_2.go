@@ -308,7 +308,21 @@ func (s *Sensor) AxisConfig() (*AxisConfig, error) {
 		return nil, err
 	}
 
-	axisConfig := newAxisConfig(mapConfig, signConfig)
+	fmt.Printf("*** mapConfig=%x signConfig=%x\n", mapConfig, signConfig)
+
+	axisConfig := newAxisConfig(0x24, 0x00) // P0
+
+	// mapConfig, err = s.bus.Read(bno055AxisMapConfig)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// signConfig, err = s.bus.Read(bno055AxisMapSign)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// fmt.Printf("*** mapConfig=%v, signConfig=%v\n", mapConfig, signConfig)
 
 	return axisConfig, nil
 }

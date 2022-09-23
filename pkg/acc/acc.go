@@ -66,17 +66,38 @@ func initACC(accChan chan<- ACCMessage) (ACC, error) {
 		panic(err)
 	}
 
+	// fmt.Printf("*** Statusx: system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
+
+	axisConfig, err := sensor.AxisConfig()
+	if err != nil {
+		panic(err)
+	}
+
+	err = sensor.RemapAxis(axisConfig)
+
+	fmt.Printf("axisConfig 1 \n")
+
+	axisConfig, err = sensor.AxisConfig()
+	if err != nil {
+		panic(err)
+	}
+
 	status, err := sensor.Status()
 	if err != nil {
 		panic(err)
 	}
 
-	// fmt.Printf("*** Statusx: system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
+	// mapConfig, err := sensor.bus.Read(0x41)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	_, err = sensor.AxisConfig()
-	if err != nil {
-		panic(err)
-	}
+	// signConfig, err := sensor.bus.Read(0x42)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// fmt.Printf("*** mapConfig=%v, signConfig=%v\n", mapConfig, signConfig)
 
 	// err = sensor.EsetOperationMode(0x08)
 	//err = sensor.EsetOperationMode(0x0C) // fast mag cal
@@ -95,7 +116,7 @@ func initACC(accChan chan<- ACCMessage) (ACC, error) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("*** StatusYY: system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
+	fmt.Printf("*** Status IMU: system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
 	//xxxxxxxxxxx
 
 	if err != nil {

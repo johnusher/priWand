@@ -262,6 +262,23 @@ func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc
 				// log.Infof("button down %v", buttonStatus)
 				buttonDown = true
 				n = 0
+
+				bearing := accMessage.Bearing
+				roll := accMessage.Roll
+				tilt := accMessage.Tilt
+
+				// if err != nil {
+				// 	panic(err)
+				// }
+
+				// bearingS := strconv.FormatFloat(float64(vector.X), 'f', -1, 32)
+				// roll := strconv.FormatFloat(float64(vector.Y), 'f', -1, 32)
+				// tilt := strconv.FormatFloat(float64(vector.Z), 'f', -1, 32)
+
+				// fmt.Printf("\r*** Bearing =%5.3f,\n", bearing)
+				fmt.Printf("\r*** Bearing =%5.3f, roll=%5.3f, tilt=%5.3f\n", bearing, roll, tilt)
+
+				// initRoll =
 				// start recording quaternions from IMU
 
 				// err := acc.Init()
@@ -269,10 +286,12 @@ func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc
 				// 	return nil, err
 				// }
 
+				/* Don't reset IMU for button press
 				err := imu.ResetAcc() // bno055OprMode is IMUPLUS = 1000 =0x8
 				if err != nil {
 					log.Errorf("failed to change mode: %s", err)
 				}
+				*/
 
 			}
 
@@ -383,9 +402,20 @@ func quats2Image(quat_in_circ_buffer [circBufferL][5]float64, length int) (strin
 		y := quat_in_circ_buffer[n+startOffset][2]
 		z := quat_in_circ_buffer[n+startOffset][3]
 
+		// from https://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToMatrix/index.htm
 		projected_circ_buffer[n][0] = 1.0 - 2.0*(y*y+z*z)
 		projected_circ_buffer[n][1] = 2.0 * (x*y + s*z)
 		projected_circ_buffer[n][2] = 2.0 * (x*z - s*y)
+
+		// nope:
+		// projected_circ_buffer[n][0] = 2.0 * (x*y - z*s)
+		// projected_circ_buffer[n][1] = 1.0 - 2.0*(x*x+z*z)
+		// projected_circ_buffer[n][2] = 2.0 * (y*z + s*x)
+
+		// nope:
+		// projected_circ_buffer[n][0] = 2.0 * (x*z + y*s)
+		// projected_circ_buffer[n][1] = 2.0 * (y*z - x*s)
+		// projected_circ_buffer[n][2] = 1.0 - 2.0*(x*x+y*y)
 
 	}
 	// step 3. when we have stopped recording data: average of projected
