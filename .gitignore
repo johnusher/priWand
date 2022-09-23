@@ -90,4 +90,8 @@ LinAcc_data.txt
 /test_parse_quats.exe
 /priWand.code-workspace
 
+<<<<<<< HEAD
 test_record_spell
+=======
+/matlab/processQuat_feb22.asv
+>>>>>>> 8d7fed1c1c09bee721117eed9101539ae815ca66
