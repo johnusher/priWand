@@ -378,8 +378,7 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 
 	log.Info("Starting message loop")
 	// listen for new incoming BATMAN message
-	// allPIs keeps track of the last message received from each PI, keyed by
-	// raspID
+	// allPIs keeps track of the last message received from each PI, keyed by raspID
 	// allPIs := map[string]chatRequestWithTimestamp{}
 	// accMessage := acc.ACCMessage{}
 	bcast := &net.UDPAddr{Port: batPort, IP: bcastIP}
@@ -410,10 +409,8 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 				// from self: ignore
 
 			} else {
-
 				// crwt.OtherID = senderID // set other ID
 				OtherID = senderID // set other ID
-
 				if messageType == messageTypeHelloA {
 					log.Infof("hello from someone else!\n")
 					// send hello back
@@ -441,7 +438,6 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 
 					if messageType == messageTypeKey {
 						// received a key message
-
 						// first unpack the message:
 						keyMessagek := message[8] // we should maybe look at total message legnth and combine other bytes if longer than 7
 
@@ -471,7 +467,6 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 							// gp.PlayWav("bark1.wav") // play wav
 							gp.PlayWav(catcat2) // play wav
 						}
-
 						if strMessage == "C" || strMessage == "c" {
 							// catFN := 2*rand.Int31n(3) + 1
 							// catcat2 := fmt.Sprintf("meow_%d.wav", catFN)
@@ -499,11 +494,8 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 						oled.ShowText(img, 2, OLEDmsg)
 
 						// gp.PlayWav("hello.wav") // play wav
-
 						// gp.PlayWav("bark1.wav") // play wav
-
 						// now send an ack back to them
-
 						// send key=1 to network, to the piID. ie using broadcastLoop
 
 						// ack message (9 bytes)
@@ -542,24 +534,19 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 
 			// now we update our list of active pis on the network:
 			now := time.Now()
-
 			crwt, ok := allPIs[senderID]
 			if !ok {
 				log.Infof("new PI detected: %+v", senderID)
 			}
 			crwt.lastMessageReceived = now
 			crwt.ID = senderID
-
 			// now do some general house-keeping, set device IDs on the network etc:
-
 			if messageType == messageTypeButton {
 				buttonStatus := message[8]
 				crwt.ButtonStatus = int64(buttonStatus)
 				// log.Infof("buttonStatus: %v", buttonStatus) // 0 is button down, 1 is up
 			}
-
 			allPIs[senderID] = crwt
-
 			// remove any PIs we haven't heard from in a while
 			// dont do this for just 2!
 			// for k, v := range allPIs {
@@ -568,12 +555,10 @@ func receiveBATMAN(messages <-chan []byte, accCh <-chan acc.ACCMessage, duino po
 			// 		delete(allPIs, k)
 			// 	}
 			// }
-
 			log.Infof("current PIs: %d", len(allPIs))
 			for _, v := range allPIs {
 				log.Infof("  %s", v)
 			}
-
 		}
 
 	}
@@ -635,23 +620,16 @@ func broadcastLoop(keys <-chan rune, duino port.Port, raspID string, bcastIP net
 			copy(bMessageOut[0:2], magicByte)
 			bMessageOut[2] = uint8(buttonmsgSize)
 			copy(bMessageOut[3:5], raspID)
-
 			// whoFor := raspiIDEveryone // message for everyone
 			// whoFor := crwt.OtherID // for the other ID
 			whoFor := OtherID // for the other ID
-
 			copy(bMessageOut[5:7], whoFor)
 			log.Infof("whoFor: %s", whoFor)
-
 			messageType := messageTypeButton // GPIO
 			bMessageOut[7] = uint8(messageType)
-
 			buttonStatus := gpioMessage.ButtonFlag
-
 			bMessageOut[8] = uint8(buttonStatus)
-
 			_, err := bm.Conn.WriteToUDP(bMessageOut, bcast)
-
 			if err != nil {
 				log.Error(err)
 				return err
@@ -691,7 +669,6 @@ func broadcastLoop(keys <-chan rune, duino port.Port, raspID string, bcastIP net
 				// pipe to TF, Python
 
 				if n > 20 {
-
 				} else {
 					log.Printf("shorty")
 					duinoMessage := "3;125\n" // mode 3 = rainbow fade, speed=25
