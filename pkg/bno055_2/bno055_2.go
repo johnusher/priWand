@@ -709,15 +709,15 @@ func (s *Sensor) init() error {
 		return err
 	}
 
-	// err = s.setOperationMode(bno055OperationModeNdof)
-	// if err != nil {
-	// 	return err
-	// }
-
-	err = s.setOperationMode(bno055OperationModeImuplus)
+	err = s.setOperationMode(bno055OperationModeNdof)
 	if err != nil {
 		return err
 	}
+
+	// err = s.setOperationMode(bno055OperationModeImuplus)
+	// if err != nil {
+	// 	return err
+	// }
 
 	//xxxxxxxxxxx
 	// status, err = s.Status()
@@ -806,15 +806,15 @@ func (s *Sensor) Einit() error {
 		return err
 	}
 
-	// err = s.setOperationMode(bno055OperationModeNdof)
-	// if err != nil {
-	// 	return err
-	// }
-
-	err = s.setOperationMode(bno055OperationModeImuplus)
+	err = s.setOperationMode(bno055OperationModeNdof)
 	if err != nil {
 		return err
 	}
+
+	// err = s.setOperationMode(bno055OperationModeImuplus)
+	// if err != nil {
+	// 	return err
+	// }
 
 	//xxxxxxxxxxx
 	// status, err = s.Status()
