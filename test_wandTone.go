@@ -1,6 +1,10 @@
-// test_record_spell.go
+// test_wandTone
 
-// requires a raspi 3 or zero
+// movement of IMU changes tone
+
+// save IMU outputs to txt file when we press button
+
+// t
 // connectd with a push button on GPIO and IMU (Bosch BNo055)
 // determine what letter the user draws in the air
 
@@ -18,15 +22,13 @@ package main
 import (
 	"bufio"
 	"encoding/base64"
+	"errors"
 	"flag"
-	"fmt"
 	"image"
 	"io"
 	"os/exec"
 	"os/signal"
 	"runtime"
-	"strconv"
-	"strings"
 	"syscall"
 
 	"math"
@@ -38,11 +40,44 @@ import (
 	"github.com/johnusher/priWand/pkg/keyboard"
 	"github.com/johnusher/priWand/pkg/oled"
 
+	"github.com/faiface/beep"
+	"github.com/faiface/beep/speaker"
+
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/exp/io/i2c"
 
 	_ "image/png"
 )
+
+type SineWave struct {
+	sampleFactor float64 // Just for ease of use so that we don't have to calculate every sample
+	phase        float64
+}
+
+func (g *SineWave) Stream(samples [][2]float64) (n int, ok bool) {
+	for i := range samples { // increment = ((2 * PI) / SampleRate) * freq
+		v := math.Sin(g.phase * 2.0 * math.Pi) // period of the wave is thus defined as: 2 * PI.
+		samples[i][0] = v
+		samples[i][1] = v
+		_, g.phase = math.Modf(g.phase + g.sampleFactor)
+	}
+
+	return len(samples), true
+}
+
+func (*SineWave) Err() error {
+	return nil
+}
+
+func SineTone(sr beep.SampleRate, freq float64) (beep.Streamer, error) {
+	dt := freq / float64(sr)
+
+	if dt >= 1.0/2.0 {
+		return nil, errors.New("faiface sine tone generator: samplerate must be at least 2 times grater then frequency")
+	}
+
+	return &SineWave{dt, 0.1}, nil
+}
 
 const (
 	circBufferL = 1200 // length of buffer where we store quat data. 600 samples @5 ms update = 3 seconds
@@ -53,7 +88,7 @@ func main() {
 
 	// parse inut flags for no hardware
 	// NB no-sound just means do not output sound- still need I2S connections (probably)
-	noACC := flag.Bool("no-acc", false, "run without Bosch accelerometer")
+	noACC := flag.Bool("no-imu", false, "run without Bosch IMU")
 	noOLED := flag.Bool("no-oled", false, "run without oled display")
 	noSound := flag.Bool("no-sound", false, "run without sound")
 
@@ -110,27 +145,27 @@ func main() {
 	// init accelerometer module (Bosch)
 	accChan := make(chan acc.ACCMessage)
 	// accChan2 := make(chan acc.ACCMessage2)
-	// a, err := acc.Init(accChan, accChan2, *noACC)
+	// imu, err := acc.Init(accChan, accChan2, *noACC)
 	imu, err := acc.Init(accChan, *noACC)
 	if err != nil {
 		log.Errorf("failed to initialize acc: %s", err)
 		return
 	}
 
-	// err = a.ResetAcc() // bno055OprMode is IMUPLUS = 1000 =0x8
+	// err = imu.ResetAcc() // bno055OprMode is IMUPLUS = 1000 =0x8
 	// if err != nil {
 	// 	log.Errorf("failed to change mode: %s", err)
 	// }
 
 	// init gpio module:
 	gpioChan := make(chan gpio.GPIOMessage)
-	// gp, err := gpio.Init(gpioChan, *noGPIO)  // TBD
-	gp, err := gpio.Init(gpioChan, *noSound)
+	// gpio, err := gpio.Init(gpioChan, *noGPIO)  // TBD
+	gpio, err := gpio.Init(gpioChan, *noSound)
 	if err != nil {
 		log.Errorf("failed to initialize GPIO: %s", err)
 		return
 	}
-	defer gp.Close()
+	defer gpio.Close()
 
 	// OLED:
 
@@ -166,6 +201,9 @@ func main() {
 	}
 
 	// main loop here:
+
+	os.Chdir("letters/feb22")
+
 	// go forth
 	go kb.Run()
 	go imu.Run()
@@ -193,12 +231,19 @@ func main() {
 func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc.ACCMessage, img *image.RGBA, oled oled.OLED, stdin io.WriteCloser, stdoutReader *bufio.Reader, imu acc.ACC) error {
 	// log.Info("Starting GPIO loop")
 
+	sr := beep.SampleRate(24000)
+	speaker.Init(sr, sr.N(time.Second/10)) // sr.N(time.Second/10) = buffer size for duration 1/10 second
+	// sine, _ := SineTone(sr, 343)
+	// speaker.Play(sine)
+
 	gpioMessage := gpio.GPIOMessage{}
 	accMessage := acc.ACCMessage{}
 
 	buttonDown := false
 	n := 0
-	var quat_in_circ_buffer [circBufferL][5]float64 // raw quaternion inputs from file or IMU
+	// var quat_in_circ_buffer [circBufferL][5]float64    // raw quaternion inputs from IMU
+	// var gravity_in_circ_buffer [circBufferL][5]float64 // raw gravity inputs from  IMU
+	// var euler_in_circ_buffer [circBufferL][5]float64   // raw euler inputs from  IMU
 
 	more := false
 	for {
@@ -238,10 +283,32 @@ func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc
 				// }
 
 				n = n + 1
-				quat_in_circ_buffer[n][0] = accMessage.QuatW
-				quat_in_circ_buffer[n][1] = accMessage.QuatX
-				quat_in_circ_buffer[n][2] = accMessage.QuatY
-				quat_in_circ_buffer[n][3] = accMessage.QuatZ
+				// quat_in_circ_buffer[n][0] = accMessage.QuatW
+				// quat_in_circ_buffer[n][1] = accMessage.QuatX
+				// quat_in_circ_buffer[n][2] = accMessage.QuatY
+				// quat_in_circ_buffer[n][3] = accMessage.QuatZ
+
+				// gravity_in_circ_buffer[n][0] = accMessage.GravX
+				// gravity_in_circ_buffer[n][1] = accMessage.GravY
+				// gravity_in_circ_buffer[n][2] = accMessage.GravZ
+
+				// euler_in_circ_buffer[n][0] = accMessage.Bearing
+				// euler_in_circ_buffer[n][1] = accMessage.Roll
+				// euler_in_circ_buffer[n][2] = accMessage.Tilt
+
+				// ctrl := &beep.Ctrl{}
+				// // ctrl.Paused = true
+				// ctrl.Streamer = nil
+				// speaker.Play(ctrl)
+
+				if n%15 == 0 && n > 130 {
+					// speaker.Clear()
+					sine, _ := SineTone(sr, accMessage.Tilt*10)
+					speaker.Play(sine)
+				}
+
+				// speaker.Lock()
+
 			}
 
 		case gpioMessage, more = <-gpioCh:
@@ -263,103 +330,21 @@ func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc
 				buttonDown = true
 				n = 0
 
-				bearing := accMessage.Bearing
-				roll := accMessage.Roll
-				tilt := accMessage.Tilt
+				log.Infof("button down")
 
-				// if err != nil {
-				// 	panic(err)
-				// }
-
-				// bearingS := strconv.FormatFloat(float64(vector.X), 'f', -1, 32)
-				// roll := strconv.FormatFloat(float64(vector.Y), 'f', -1, 32)
-				// tilt := strconv.FormatFloat(float64(vector.Z), 'f', -1, 32)
-
-				// fmt.Printf("\r*** Bearing =%5.3f,\n", bearing)
-				fmt.Printf("\r*** Bearing =%5.3f, roll=%5.3f, tilt=%5.3f\n", bearing, roll, tilt)
-
-				// initRoll =
-				// start recording quaternions from IMU
-
-				// err := acc.Init()
-				// if err != nil {
-				// 	return nil, err
-				// }
-
-				/* Don't reset IMU for button press
-				err := imu.ResetAcc() // bno055OprMode is IMUPLUS = 1000 =0x8
-				if err != nil {
-					log.Errorf("failed to change mode: %s", err)
-				}
-				*/
+				// sine, _ := SineTone(sr, 343)
+				// speaker.Play(sine)
 
 			}
 
 			if buttonStatus == 1 {
 				// button up
-				// log.Infof("button up %v", buttonStatus)
+				log.Infof("button up %v", buttonStatus)
 				buttonDown = false
 
-				// stop recording quaternions from IMU,
-				// convert quaternions to 28x28 image
-				// pipe to TF, Python
-
-				// log.Printf("quat_in_circ_buffer: %v", quat_in_circ_buffer)
-				// log.Printf("n: %v", n)
-				// mFnbT9sthKKp22GR
+				speaker.Clear()
 
 				if n > 20 {
-					encoded, letterImage := quats2Image(quat_in_circ_buffer, n)
-
-					// send encoded base64 28x28 ti TF:
-					_, err := stdin.Write([]byte(encoded))
-					if err != nil {
-						log.Errorf("stdin.Write() failed: %s", err)
-					}
-
-					// write end of line:
-					_, err = stdin.Write([]byte("\n"))
-					if err != nil {
-						log.Errorf("stdin.Write() failed: %s", err)
-					}
-
-					s2, err := stdoutReader.ReadString('\n')
-					if err != nil {
-						log.Printf("Process is finished ..")
-					}
-
-					// print first and second place:
-
-					log.Printf("raw message: %v", s2)
-					s := strings.FieldsFunc(s2, Split)
-
-					prob, _ := strconv.ParseFloat(s[0], 64)
-					// letter := strings.Trim(s[1], "'")
-					letter := strings.Replace(s[1], "'", "", -1)
-
-					// s[2] is blank
-					prob2, _ := strconv.ParseFloat(s[3], 64)
-					letter2 := strings.Replace(s[4], "'", "", -1)
-
-					log.Printf("letter1: %v", letter)
-					log.Printf("prob1: %v", prob)
-
-					log.Printf("letter2: %v", letter2)
-					log.Printf("prob2: %v", prob2)
-
-					// OLED display:
-					msgP := fmt.Sprintf("%s or %s", letter, letter2)
-					if prob > 0.9 {
-						// high probability: just print first place letter
-						msgP = fmt.Sprintf("letter = %s", letter)
-					}
-
-					TFimg := image.NewRGBA(image.Rect(0, 0, 128, 64))
-
-					oled.ShowText(TFimg, 1, msgP)
-					// var letterImage [lp][lp]byte
-
-					oled.AddGesture(TFimg, letterImage)
 
 				} else {
 					log.Printf("shorty")
@@ -402,25 +387,9 @@ func quats2Image(quat_in_circ_buffer [circBufferL][5]float64, length int) (strin
 		y := quat_in_circ_buffer[n+startOffset][2]
 		z := quat_in_circ_buffer[n+startOffset][3]
 
-		// s := quat_in_circ_buffer[n+startOffset][3]
-		// x := quat_in_circ_buffer[n+startOffset][0]
-		// y := quat_in_circ_buffer[n+startOffset][1]
-		// z := quat_in_circ_buffer[n+startOffset][2]
-
-		// from https://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToMatrix/index.htm
 		projected_circ_buffer[n][0] = 1.0 - 2.0*(y*y+z*z)
 		projected_circ_buffer[n][1] = 2.0 * (x*y + s*z)
 		projected_circ_buffer[n][2] = 2.0 * (x*z - s*y)
-
-		// nope:
-		// projected_circ_buffer[n][0] = 2.0 * (x*y - z*s)
-		// projected_circ_buffer[n][1] = 1.0 - 2.0*(x*x+z*z)
-		// projected_circ_buffer[n][2] = 2.0 * (y*z + s*x)
-
-		// nope:
-		// projected_circ_buffer[n][0] = 2.0 * (x*z + y*s)
-		// projected_circ_buffer[n][1] = 2.0 * (y*z - x*s)
-		// projected_circ_buffer[n][2] = 1.0 - 2.0*(x*x+y*y)
 
 	}
 	// step 3. when we have stopped recording data: average of projected
