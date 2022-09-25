@@ -1,0 +1,5 @@
+bleepHelp
+
+git clone github.com/bspaans/bleep
+cd bleep
+go run main.go
