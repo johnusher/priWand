@@ -238,81 +238,15 @@ for d = 1:nMeasurements
     
     
     
-    figure;plot(yaw,pitch,'x')
+    hold on;plot(yaw,pitch,'x')
     
+%     yawMatrix(d,:) = yaw;
+%     pitchMatrix(d,:) = pitch;
+%     
     
-    
-    %
-    %
-    %
-    %     dataL_Quat = length(x);
-    %
-    %
-    %     % scale
-    %
-    %     if(abs(min(x))>max(x))
-    %         maxX = min(x);
-    %     else
-    %         maxX = max(x);
-    %     end
-    %
-    %     if(abs(min(y))>max(y))
-    %         maxY = min(y);
-    %     else
-    %         maxY = max(y);
-    %     end
-    %
-    %     if abs(maxY)>abs(maxX)
-    %         maxdim = maxY;
-    %     else
-    %         maxdim = maxX;
-    %     end
-    %
-    %     scaler = 1/abs(maxdim);
-    %
-    %     x = x.*scaler;
-    %     y = y.*scaler;
-    %
-    %     scaler
-    %
-    %
-    %
-    %     %%
-    %     % convert vector into bitmap
-    %
-    %     m_x = 28;   % pixels in square
-    %     m_y = m_x;
-    %     m = zeros(m_x,m_x);
-    %
-    %     x_int = round(x*m_x/2);
-    %     y_int = round(y*m_y/2);
-    %
-    %
-    %     for n=1:dataL_Quat
-    %         x_int_d = x_int(n)+m_x/2 + 1;
-    %         y_int_d = y_int(n)+m_y/2 + 1;
-    %
-    %         m(x_int_d,y_int_d) = 1;
-    %     end
-    %
-    %
-    %     %     subplot(sp_m,sp_n,d-2)
-    %     figure
-    %     I = mat2gray(m);
-    %     imshow(I)
-    
-    
-    
-    %     cd('C:\Users\john\Documents\Arduino\ardpifi\letters')
-    %     fn = [int2str(d) '_O.bmp']
-    %     imwrite(I,fn)
-    
-    
-    %     cd(pn)
-    % cd('O')
-    %     hold on;
-    
-    %     cd ..
     
     
 end
+
+% figure;plot(yawMatrix,pitchMatrix,'x')
+
