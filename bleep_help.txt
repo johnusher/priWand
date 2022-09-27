@@ -3,3 +3,20 @@ bleepHelp
 git clone github.com/bspaans/bleep
 cd bleep
 go run main.go
+
+
+
+github.com/veandco/go-sdl2
+
+go get github.com/veandco/go-sdl2   
+
+
+git clone https://github.com/veandco/go-sdl2   ~/code/go/src/github.com/veandco/go-sdl2
+
+
+
+https://dev.to/thilanka/sine-wave-generator-using-golang-nom
+
+go get github.com/faiface/beep 
+go get github.com/hajimehoshi/oto
+

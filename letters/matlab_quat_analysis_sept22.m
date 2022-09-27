@@ -26,7 +26,8 @@ end
 
 skip = 10;
 
-pn = '../letters/feb22'
+% pn = '../letters/feb22'
+pn = 'C:\Users\john\Documents\Arduino\priWand\priWand\letters\O'
 cd(pn)
 
 d = dir;
@@ -56,6 +57,7 @@ for d = 1:nMeasurements
     
     
     fn = 'quat_data.txt';
+    fn = 'quaternion_data.txt'
     X=importdata(fn,'%s');
     dataL_Quat = length(X);
     quat = [];
@@ -80,8 +82,11 @@ for d = 1:nMeasurements
     
     quats = quat;
     %         1. get3DTipTrajectory
-    
-    tip = [0.8, -0.5, -0.4];  %   tip = np.array([0.8, -0.5, -0.4], dtype=np.float64)
+    %       # Direction of the wand tip relative to quat frame.
+    %   # Chosen by trial and error to give positive Z values and clear shapes.
+    %   # 1, 0, 0  works reasonably well too.
+    tip = [0.9, -0.5, -0.4];  %   tip = np.array([0.8, -0.5, -0.4], dtype=np.float64)
+    %      tip = [1, 0, 0];
     tip = tip ./ norm(tip);   % tip /= np.linalg.norm(tip)
     
     result = zeros(size(quats,1),3);  % result = np.empty([quats.shape[0], 3], np.float64)
@@ -162,31 +167,36 @@ for d = 1:nMeasurements
     %      find the smallest yaw and pitch ranges that encompass the whole trajectory,
     %      and treat those values as X and Y in the image space.
     
-    for n=1:dataL_Quat-skip  % skip first 10
+    yaw = [];
+    pitch = [];
+    for n=2:dataL_Quat-skip  % skip first 10
         %            angle_range = wrappingAngleRange(yawAngles(get3DTipTrajectory(recordings[i])))
         
         % def normaliseTrajectory(trajectory):
-        yaw(n) = atan2(y(n),x(n));   %  return np.arctan2(trajectory[:, 0], trajectory[:, 1])
-        pitch(n) = asin(z(n));  % return np.arcsin(trajectory[:, 2])
+        yaw(n-1) = atan2(y(n),x(n));   %  return np.arctan2(trajectory[:, 0], trajectory[:, 1])
+        pitch(n-1) = asin(z(n));  % return np.arcsin(trajectory[:, 2])
         
     end
+    
+    yaw=-yaw;
     
     %yaw_range = wrappingAngleRange(yaw)
     %       wrappingAngleRange : Returns the smallest angle range that encompasses all angles.
     %         Returns:   a tuple of two angles.
     %         If the second is smaller than the first, then the angle range contains pi.
     
+    %     yawMin = min(yaw)*180/pi
+    
     
     angles = yaw;
     angles = sort(angles);  % angles = np.sort(angles)
     angles_diff = angles - circshift(angles,1);  % angles_diff = angles - np.roll(angles, 1)
     
-    angles_diff(1) = 2*pi+ angles_diff(1);  % angles_diff[0] = 2*np.pi + angles_diff[0]
+    %     angles_diff(1) = 2*pi+ angles_diff(1);  % angles_diff[0] = 2*np.pi + angles_diff[0]
     
-    first_angle = find(angles_diff==max(angles_diff));  % first_angle = np.argmax(angles_diff)
-    last_angle = first_angle-1;  % angles.size
+    first_angleInd = find(angles_diff==max(angles_diff));  % first_angle = np.argmax(angles_diff)
     
-    first_angle = angles(first_angle);
+    first_angle = angles(first_angleInd);
     
     %     angle_range = wrappingAngleRange(yawAngles(get3DTipTrajectory(recordings[i])))
     %   print(i, "[%0.1f, %0.1f]" % (angle_range[0] * 180 / np.pi, angle_range[1] * 180 / np.pi))
@@ -197,52 +207,127 @@ for d = 1:nMeasurements
     
     yaw = yaw -  first_angle;  % yaw -= yaw_range[0]
     
-    for n=1:dataL_Quat-skip   %yaw[yaw < 0] += 2 * np.pi
-        
-        if yaw<0
-            yaw = yaw + 2*pi;
+    
+    for n=1:dataL_Quat-skip-1   %yaw[yaw < 0] += 2 * np.pi
+        if yaw(n)<0
+            %             yaw(n) = yaw(n) + 2*pi;
+            yaw(n) = 0;
         end
-        
     end
     
     % now unwrap pitch:
     
-    angles = pitch;
-    angles = sort(angles);  % angles = np.sort(angles)
-    angles_diff = angles - circshift(angles,1);  % angles_diff = angles - np.roll(angles, 1)
-    
-    angles_diff(1) = 2*pi+ angles_diff(1);  % angles_diff[0] = 2*np.pi + angles_diff[0]
-    
-    first_angle = find(angles_diff==max(angles_diff));  % first_angle = np.argmax(angles_diff)
-    last_angle = first_angle-1;  % angles.size
-    
-    first_angle = angles(first_angle);
-    %     last_angle = first_angle-1;  % angles.size
-    
-    %     angle_range = wrappingAngleRange(yawAngles(get3DTipTrajectory(recordings[i])))
-    %   print(i, "[%0.1f, %0.1f]" % (angle_range[0] * 180 / np.pi, angle_range[1] * 180 / np.pi))
-    %     angle_range = [first_angle * 180/pi last_angle * 180/pi];
-    %     disp(angle_range)
-    
-    
-    %       pitch = pitch - pitch_range[0]
-    pitch = pitch -first_angle;
-    
-    for n=1:dataL_Quat-skip   %yaw[yaw < 0] += 2 * np.pi
+    if(0)
+        angles = pitch;
+        angles = sort(angles);  % angles = np.sort(angles)
+        angles_diff = angles - circshift(angles,1);  % angles_diff = angles - np.roll(angles, 1)
+        %     angles_diff(1) = 2*pi+ angles_diff(1);  % angles_diff[0] = 2*np.pi + angles_diff[0]
         
-        if pitch<0
-            pitch = pitch + 2*pi;
-        end
+        first_angleInd = find(angles_diff==max(angles_diff));  % first_angle = np.argmax(angles_diff)
         
+        first_angle = angles(first_angleInd);
     end
     
+    %     pitch = pitch -first_angle;
     
     
-    hold on;plot(yaw,pitch,'x')
+    pitch = pitch-min(pitch);
+    for n=1:dataL_Quat-1-skip   %yaw[yaw < 0] += 2 * np.pi
+        if pitch(n)<0
+            %             pitch(n) = pitch(n) + 2*pi;
+        end
+    end
     
-%     yawMatrix(d,:) = yaw;
-%     pitchMatrix(d,:) = pitch;
+    %      for n=1:dataL_Quat-1   %yaw[yaw < 0] += 2 * np.pi
+    %         if pitch(n)>1 || pitch(n)<0
+    %             pitch(n) = 0;
+    %         end
+    %         if yaw(n)>1 || yaw(n)<0
+    %             yaw(n) = 0;
+    %         end
+    %      end
+    
+        
+    
+%     hold on;plot(yaw,pitch,'x')
+    
+    x = yaw;
+    y = pitch;
+    
+dataL_Quat = length(x);
+    
+    
+%     % scale
 %     
+%     if(abs(min(x))>max(x))
+%         maxX = min(x);
+%     else
+%         maxX = max(x);
+%     end
+%     
+%     if(abs(min(y))>max(y))
+%         maxY = min(y);
+%     else
+%         maxY = max(y);
+%     end
+%     
+%     if abs(maxY)>abs(maxX)
+%         maxdim = maxY;
+%     else
+%         maxdim = maxX;
+%     end
+%     
+%     scaler = 1/abs(maxdim);
+%     
+
+    scaler = 1/max(y);
+    x = x.*scaler;
+    y = y.*scaler;
+    
+%     scaler
+    
+    
+    
+    %%
+    % convert vector into bitmap
+    
+    m_x = 28;   % pixels in square
+    m_y = m_x;
+    m = zeros(m_x,m_x);
+    
+    x_int = round(x*(m_x-1));
+    y_int = round(y*(m_x-1));
+    
+    
+    for n=1:dataL_Quat
+%         x_int_d = x_int(n)+m_x/2 + 1;
+%         y_int_d = y_int(n)+m_y/2 + 1;
+        
+         x_int_d(n) = x_int(n)+ 1;
+        y_int_d(n) = m_x-y_int(n)+ 1;
+        
+%                x_int_d = x_int(n)+1;
+%         y_int_d = y_int(n)+1;
+        
+%         m(x_int_d(n),y_int_d(n)) = 1;
+        m(y_int_d(n),x_int_d(n)) = 1;
+    end
+    
+%     image 0,0 is top left
+    
+    %     subplot(sp_m,sp_n,d-2)
+    figure
+    I = mat2gray(m);
+    imshow(I)
+    
+    ipn = 'C:\Users\john\Documents\Arduino\priWand\priWand\letters\';
+    fn = [int2str(d) '_O2.bmp']
+    imwrite(I,[ipn fn])
+    
+    
+
+    
+    
     
     
     
