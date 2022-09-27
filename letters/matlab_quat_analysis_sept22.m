@@ -26,8 +26,8 @@ end
 
 skip = 10;
 
-% pn = '../letters/feb22'
-pn = 'C:\Users\john\Documents\Arduino\priWand\priWand\letters\O'
+pn = '../letters/feb22'
+% pn = 'C:\Users\john\Documents\Arduino\priWand\priWand\letters\O'
 cd(pn)
 
 d = dir;
@@ -57,7 +57,7 @@ for d = 1:nMeasurements
     
     
     fn = 'quat_data.txt';
-    fn = 'quaternion_data.txt'
+    %     fn = 'quaternion_data.txt'
     X=importdata(fn,'%s');
     dataL_Quat = length(X);
     quat = [];
@@ -99,49 +99,36 @@ for d = 1:nMeasurements
         % first mulQuat: mulQuat(np.concatenate([[0], p]), invQuat(q)))[1:]
         % def mulQuat(q0, q1):
         
-        q = quats(n, :);
-        p = tip;
+        s = quats(n,1);
+        x = quats(n,2);
+        y = quats(n,3);
+        z = quats(n,4);
         
-        p_concat = [0, tip]; %   first arg into mulQuat= np.concatenate([[0], p])
+        x0 = tip(1);
+        y0 = tip(2);
+        z0 = tip(3);
         
-        invQuatQ = [q(1) -q(2) -q(3) -q(4)];     %   second arg into mulQuat = invQuat(q))
-        %  invQuat =  """Invert a quaternion rotation (quat conjugate)."""
+        w1 = s;
+        x1 = -x;
+        y1 = -y;
+        z1 = -z;
         
-        % now send this to 1st mulQuat
-        
-        q0 = p_concat;
-        q1 = invQuatQ;
-        
-        w0 = q0(1);
-        x0 = q0(2);
-        y0 = q0(3);
-        z0 = q0(4);
-        
-        w1 = q1(1);
-        x1 = q1(2);
-        y1 = q1(3);
-        z1 = q1(4);
-        
-        firstMulQuatOut = [w0 * w1 - x0 * x1 - y0 * y1 - z0 * z1 ,...
-            w0 * x1 + x0 * w1 + y0 * z1 - z0 * y1,...
-            w0 * y1 - x0 * z1 + y0 * w1 + z0 * x1,...
-            w0 * z1 + x0 * y1 - y0 * x1 + z0 * w1];
+        firstMulQuatOut = [ - x0 * x1 - y0 * y1 - z0 * z1 ,...
+            x0 * w1 + y0 * z1 - z0 * y1,...
+            - x0 * z1 + y0 * w1 + z0 * x1,...
+            x0 * y1 - y0 * x1 + z0 * w1];
         
         % now send to second  mulQuat
         
-        q0 = quats(i, :);
+        w0 = s;
+        x0 = x;
+        y0 = y;
+        z0 = z;
         
-        q1 = firstMulQuatOut;
-        
-        w0 = q0(1);
-        x0 = q0(2);
-        y0 = q0(3);
-        z0 = q0(4);
-        
-        w1 = q1(1);
-        x1 = q1(2);
-        y1 = q1(3);
-        z1 = q1(4);
+        w1 = firstMulQuatOut(1);
+        x1 = firstMulQuatOut(2);
+        y1 = firstMulQuatOut(3);
+        z1 = firstMulQuatOut(4);
         
         secondMulQuatOut = [w0 * w1 - x0 * x1 - y0 * y1 - z0 * z1 ,...
             w0 * x1 + x0 * w1 + y0 * z1 - z0 * y1,...
@@ -205,12 +192,16 @@ for d = 1:nMeasurements
     
     % now unwrap yaw
     
-    yaw = yaw -  first_angle;  % yaw -= yaw_range[0]
+    yaw = yaw -  first_angle+0.2;  % yaw -= yaw_range[0]
+    %     minYaw = min(yaw);
+    %     if minYaw<0
+    %         yaw = yaw - minYaw+0.2;
+    %     end
     
     
     for n=1:dataL_Quat-skip-1   %yaw[yaw < 0] += 2 * np.pi
         if yaw(n)<0
-            %             yaw(n) = yaw(n) + 2*pi;
+%             yaw(n) = yaw(n) + 2*pi;
             yaw(n) = 0;
         end
     end
@@ -247,73 +238,47 @@ for d = 1:nMeasurements
     %         end
     %      end
     
-        
     
-%     hold on;plot(yaw,pitch,'x')
+    
+    %     figure;plot(yaw,pitch,'x')
     
     x = yaw;
     y = pitch;
     
-dataL_Quat = length(x);
+    dataL_Quat = length(x);
     
-    
-%     % scale
-%     
-%     if(abs(min(x))>max(x))
-%         maxX = min(x);
-%     else
-%         maxX = max(x);
-%     end
-%     
-%     if(abs(min(y))>max(y))
-%         maxY = min(y);
-%     else
-%         maxY = max(y);
-%     end
-%     
-%     if abs(maxY)>abs(maxX)
-%         maxdim = maxY;
-%     else
-%         maxdim = maxX;
-%     end
-%     
-%     scaler = 1/abs(maxdim);
-%     
-
-    scaler = 1/max(y);
-    x = x.*scaler;
-    y = y.*scaler;
-    
-%     scaler
-    
-    
-    
-    %%
-    % convert vector into bitmap
-    
-    m_x = 28;   % pixels in square
-    m_y = m_x;
-    m = zeros(m_x,m_x);
-    
-    x_int = round(x*(m_x-1));
-    y_int = round(y*(m_x-1));
-    
-    
-    for n=1:dataL_Quat
-%         x_int_d = x_int(n)+m_x/2 + 1;
-%         y_int_d = y_int(n)+m_y/2 + 1;
+    if(1)
+        scaler = 1/max(y);
+        x = x.*scaler;
+        y = y.*scaler;
         
-         x_int_d(n) = x_int(n)+ 1;
-        y_int_d(n) = m_x-y_int(n)+ 1;
+        % convert vector into bitmap
         
-%                x_int_d = x_int(n)+1;
-%         y_int_d = y_int(n)+1;
+        m_x = 28;   % pixels in square
+        m_y = m_x;
+        m = zeros(m_x,m_x);
         
-%         m(x_int_d(n),y_int_d(n)) = 1;
-        m(y_int_d(n),x_int_d(n)) = 1;
+        x_int = round(x*(m_x-1));
+        y_int = round(y*(m_x-1));
+        
+        
+        for n=1:dataL_Quat
+            %         x_int_d = x_int(n)+m_x/2 + 1;
+            %         y_int_d = y_int(n)+m_y/2 + 1;
+            
+            x_int_d(n) = x_int(n)+ 1;
+            y_int_d(n) = m_x-y_int(n)+ 1;
+            
+            %                x_int_d = x_int(n)+1;
+            %         y_int_d = y_int(n)+1;
+            
+            %         m(x_int_d(n),y_int_d(n)) = 1;
+            m(y_int_d(n),x_int_d(n)) = 1;
+        end
+        
     end
     
-%     image 0,0 is top left
+    %     image 0,0 is top left
     
     %     subplot(sp_m,sp_n,d-2)
     figure
@@ -325,7 +290,7 @@ dataL_Quat = length(x);
     imwrite(I,[ipn fn])
     
     
-
+    
     
     
     
