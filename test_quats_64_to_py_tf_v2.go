@@ -33,14 +33,14 @@ import (
 const (
 	circBufferL = 600 // length of buffer where we store quat data. 600 samples @5 ms update = 3 seconds
 	lp          = 28  // pixels used to represent drawn letter, on each axis, ie lpxlp
-	imuSkip     = 50  // skip first and last 50 samples
+	imuSkip     = 11  // skip first and last 50 samples
 )
 
 func main() {
 
 	var quat_inFn = "./letters/M/M_20-46-09/quaternion_data.txt"
 
-	var tip [3]float64 = [3]float64{0.9, -0.5, -0.4}
+	var tip [3]float64 = [3]float64{0.8, -0.5, -0.4}
 
 	var quat_in_circ_buffer [circBufferL][5]float64 // raw quaternion inputs from file or IMU
 
@@ -48,23 +48,13 @@ func main() {
 	// var sortedyaw [circBufferL]float64
 
 	yaw := make([]float64, circBufferL)
-	sortedyaw := make([]float64, circBufferL)
+	// sortedyaw := make([]float64, circBufferL)
 	angles_diff := make([]float64, circBufferL)
 
 	var maxDiff float64
 
 	var pitch [circBufferL]float64
 
-	var projected_circ_buffer [circBufferL][3]float64 // quat projected to xyz
-	// var centre [3]float64                             // 3x1 averages of projected_circ_buffer coluns
-	// var centre_direction [3]float64                   // 3x1
-	// var eye_minus_cdscc [3]float64
-	// var y_direction [3]float64
-	// var centre_direction_sq_centre_col [3]float64
-	// var x_direction [3]float64
-	// var x [circBufferL]float64
-	// var y [circBufferL]float64
-	// var letterImage [lp][lp]uint8
 	var letterImage [lp][lp]byte
 
 	var n int
@@ -72,6 +62,7 @@ func main() {
 	searchDir := "letters"
 
 	pattern := "quaternion_data.txt"
+	// pattern := "quat_data.txt"
 
 	fileList := make([]string, 0)
 	err := filepath.Walk(searchDir, func(path string, f os.FileInfo, err error) error {
@@ -111,7 +102,10 @@ func main() {
 	tip[1] = tip[1] / tipNorm
 	tip[2] = tip[2] / tipNorm
 
+	n = 0
+
 	for _, file := range fileList {
+		// for _, file := range fileList {
 
 		matched, _ := regexp.MatchString(pattern, file)
 		// fmt.Println(matched, err)
@@ -147,6 +141,11 @@ func main() {
 
 				}
 
+				// fn, err := fmt.Fscan(f, &flt1, &flt2, &flt3, &flt4)
+				// if fn == 0 || err != nil {
+				// 	break
+				// }
+
 				quat_in_circ_buffer[n][0] = flt1
 				quat_in_circ_buffer[n][1] = flt2
 				quat_in_circ_buffer[n][2] = flt3
@@ -164,7 +163,7 @@ func main() {
 
 				x0 := tip[0]
 				y0 := tip[1]
-				z0 := tip[1]
+				z0 := tip[2]
 
 				w1 := s
 				x1 := -x
@@ -176,11 +175,17 @@ func main() {
 					-x0*z1 + y0*w1 + z0*x1,
 					x0*y1 - y0*x1 + z0*w1}
 
-				// log.Printf(" firstMulQuatOut: %v", firstMulQuatOut)
+				// log.Printf(" w1: %v", w1)
+				// log.Printf(" x1: %v", x1)
+				// log.Printf(" y1: %v", w1)
+				// log.Printf(" z1: %v", x1)
 
-				projected_circ_buffer[n][0] = 1.0 - 2.0*(y*y+z*z)
-				projected_circ_buffer[n][1] = 2.0 * (x*y + s*z)
-				projected_circ_buffer[n][2] = 2.0 * (x*z - s*y)
+				// log.Printf(" firstMulQuatOut[1]: %v", firstMulQuatOut[1])
+				// log.Printf(" firstMulQuatOut[2]: %v", firstMulQuatOut[2])
+
+				// projected_circ_buffer[n][0] = 1.0 - 2.0*(y*y+z*z)
+				// projected_circ_buffer[n][1] = 2.0 * (x*y + s*z)
+				// projected_circ_buffer[n][2] = 2.0 * (x*z - s*y)
 
 				w0 := s
 				x0 = x
@@ -203,8 +208,11 @@ func main() {
 				// log.Printf("projected_circ_buffer[n][1] %v", projected_circ_buffer[n][1])
 				// log.Printf("projected_circ_buffer[n][2] %v", projected_circ_buffer[n][2])
 
-				yaw[n] = -math.Atan2(secondMulQuatOut[1], secondMulQuatOut[2]) // add negative for some reason....
+				yaw[n] = math.Atan2(secondMulQuatOut[1], secondMulQuatOut[2]) // add negative for some reason....
 				pitch[n] = math.Asin(secondMulQuatOut[3])
+
+				// log.Printf(" secondMulQuatOut[1]: %v", secondMulQuatOut[1])
+				// log.Printf(" secondMulQuatOut[2]: %v", secondMulQuatOut[2])
 
 				// log.Printf(" yaw[n] : %v", yaw[n])
 				// log.Printf(" pitch[n] : %v", pitch[n])
@@ -213,86 +221,86 @@ func main() {
 
 			}
 
-			// log.Printf(" n: %v", n)
+			// log.Printf("quat_in_circ_buffer[0][0] %v", quat_in_circ_buffer[0][0])
+			// log.Printf("quat_in_circ_buffer[0][1] %v", quat_in_circ_buffer[0][1])
+			// log.Printf("quat_in_circ_buffer[0][2] %v", quat_in_circ_buffer[0][2])
+			// log.Printf("quat_in_circ_buffer[0][3] %v", quat_in_circ_buffer[0][3])
+
+			// log.Printf(" yaw[0]: %v", yaw[0])
 
 			// sortedyaw = yaw
-			copy(sortedyaw, yaw)
+			sortedyaw := make([]float64, n-0)
+			copy(sortedyaw, yaw[0:n])
 			sort.Float64s(sortedyaw)
-			// log.Printf(" yaw: %v", yaw)
-			// log.Printf(" sortedyaw: %v", sortedyaw)
 
-			maxDiff = -20.0
+			// log.Printf(" sortedyaw[0]: %v", sortedyaw[0])
+
+			// log.Printf(" yaw[2]: %v", yaw[2])
+			// log.Printf(" sortedyaw[2]: %v", sortedyaw[2])
+
 			first_angleInd := 0
-			for i := 0; i < n-1; i++ {
+			angles_diff[0] = 2*math.Pi + sortedyaw[0] - sortedyaw[1]
+			maxDiff = angles_diff[0]
+			for i := 1; i < n-1; i++ {
 				angles_diff[i] = sortedyaw[i] - sortedyaw[i+1]
-				if angles_diff[i] > maxDiff && angles_diff[i] != 0 {
+				if angles_diff[i] > maxDiff {
 					maxDiff = angles_diff[i]
 					first_angleInd = i
 				}
 			}
 
+			// log.Printf(" angles_diff: %v", angles_diff)
 			// log.Printf(" maxDiff: %v", maxDiff)
 			// log.Printf(" first_angleInd: %v", first_angleInd)
 
 			first_angle := sortedyaw[first_angleInd]
-			// log.Printf(" first_angle: %v", first_angle)
-
-			for i := 0; i < n-1; i++ {
-				yaw[i] = yaw[i] - first_angle + 0.3 // yaw = yaw -  first_angle+0.2;  % yaw -= yaw_range
-
-				if yaw[i] < 0 {
-					// yaw[i] = yaw[i] + math.Pi
-					yaw[i] = 0
-				}
-			}
-
-			// log.Printf(" yaw2[5] : %v", yaw[5])
 
 			pitchMin := 20.0
-
 			for i := 0; i < n-1; i++ {
 				pitchMin = math.Min(pitchMin, pitch[i])
-
 			}
 
-			pitchMax := -20.0
-			for i := 0; i < n-1; i++ {
+			for i := 0; i < n-0; i++ {
+
 				pitch[i] = pitch[i] - pitchMin
-				pitchMax = math.Max(pitchMax, pitch[i])
-			}
 
-			// pitchMin = 20.0
-			// yawMin := 20.0
-			// yawMax := -20.0
-			// for i := 0; i < n-1; i++ {
-			// 	pitchMin = math.Min(pitchMin, pitch[i])
-			// 	yawMin = math.Min(yawMin, yaw[i])
-			// 	yawMax = math.Max(yawMax, yaw[i])
-			// }
+				yaw[i] = yaw[i] - first_angle // yaw = yaw -  first_angle+0.2;  % yaw -= yaw_range
 
-			// log.Printf(" pitchMin : %v", pitchMin)
-			// log.Printf(" pitchMax : %v", pitchMax)
-
-			// eof reached
-
-			scaler := 0.4 / pitchMax // scale image so we don't extend to the edge: this REALLY help %prob!
-
-			for i := 0; i < n-1; i++ {
-				yaw[i] = yaw[i]*scaler + 0.1
-				pitch[i] = pitch[i]*scaler + 0.1
-
-				if yaw[i] > 0.9 || pitch[i] > 0.9 || yaw[i] < 0.0 || pitch[i] < 0.0 {
-
-					// log.Printf(" yaw[i] : %v", yaw[i])
-					// log.Printf(" pitch[i] : %v", pitch[i])
-
-					yaw[i] = 0.0
-					pitch[i] = 0.0
+				if yaw[i] < 0 {
+					yaw[i] = yaw[i] + 2*math.Pi
 				}
 
+				if pitch[i] < 0 {
+					pitch[i] = pitch[i] + 2*math.Pi
+				}
 			}
 
-			// log.Printf(" pitchMax : %v", pitchMax)
+			// log.Printf(" yaw[5] : %v", yaw[5])
+			// log.Printf(" pitch[5] : %v", pitch[5])
+
+			min_yaw := 10.0
+			max_yaw := -10.0
+			min_pitch := 10.0
+			max_pitch := -10.0
+			for i := 0; i < n; i++ {
+				min_yaw = math.Min(min_yaw, yaw[i])
+				max_yaw = math.Max(max_yaw, yaw[i])
+				min_pitch = math.Min(min_pitch, pitch[i])
+				max_pitch = math.Max(max_pitch, pitch[i])
+			}
+			// log.Printf(" min_yaw: %v", min_yaw)
+			// log.Printf(" max_yaw : %v", max_yaw)
+			// log.Printf(" min_pitch: %v", min_pitch)
+			// log.Printf(" max_pitch: %v", max_pitch)
+
+			x_range := max_yaw - min_yaw
+			y_range := max_pitch - min_pitch
+			scale := 0.95 / math.Max(x_range, y_range)
+
+			for i := 0; i < n; i++ {
+				yaw[i] = 0.5 + (yaw[i]-min_yaw-x_range/2)*scale
+				pitch[i] = 0.5 + (pitch[i]-min_pitch-y_range/2)*scale
+			}
 
 			// make black and white image:
 
@@ -311,14 +319,7 @@ func main() {
 			for i := 0; i < n-1; i++ {
 				x_int = int(yaw[i] * lp)
 				y_int = lp - int(pitch[i]*lp) - 1
-
-				// log.Printf(" x_int: %v", x_int)
-				// log.Printf(" y_int: %v", y_int)
-
-				// log.Printf(" yaw[i] : %v", yaw[i])
-				// log.Printf(" y_int: %v", y_int)
-
-				letterImage[x_int][y_int] = 1
+				letterImage[y_int][x_int] = 1
 			}
 
 			var joinedArray []byte
@@ -356,7 +357,6 @@ func main() {
 			now2 := time.Now()
 			elapsedTime := now2.Sub(now1)
 			log.Printf("elapsedTime TF=%v", elapsedTime)
-
 			log.Printf("raw message: %v", s2)
 
 			// // print first and second place:
@@ -389,8 +389,11 @@ func main() {
 			// x_int := 0
 			// y_int := 0
 			for i := 0; i < n-1; i++ {
+				// x_int = lp - int(yaw[i]*lp)
+				// y_int = lp - int(pitch[i]*lp)
+
 				x_int = int(yaw[i] * lp)
-				y_int = lp - int(pitch[i]*lp)
+				y_int = lp - int(pitch[i]*lp) - 1
 
 				img.Set(x_int, y_int, color.RGBA{255, 0, 0, 255})
 			}
@@ -404,6 +407,7 @@ func main() {
 			// Save to out.bmp
 
 			sn := strings.Replace(file, "quaternion_data.txt", "quat_image.bmp", 1)
+			// sn := strings.Replace(file, "quat_data.txt", "quat_image.bmp", 1)
 
 			fo, err := os.OpenFile(sn, os.O_WRONLY|os.O_CREATE, 0600)
 			if err != nil {
@@ -418,6 +422,8 @@ func main() {
 
 			// takes bout 1.5 ms to save bmp, 10 ms to save png
 			// log.Printf("elapsedTime2=%v", elapsedTime)
+
+			// break
 
 		}
 
