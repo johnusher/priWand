@@ -26,8 +26,8 @@ end
 
 skip = 11;
 
-pn = '../letters/feb22'
-% pn = 'C:\Users\john\Documents\Arduino\priWand\priWand\letters\M'
+% pn = '../letters/feb22'
+pn = 'C:\Users\john\Documents\Arduino\priWand\priWand\letters\M'
 cd(pn)
 
 d = dir;
@@ -49,6 +49,10 @@ for d = 1:nMeasurements
     
     dn=(measurements(d).name)
     
+    dn = 'M_22-14-45'
+    dn = 'M_20-45-40'
+ 
+    
     cd(dn)
     
     %% read in quat data, gravity, and euler
@@ -56,8 +60,8 @@ for d = 1:nMeasurements
     % gavity is x,y,z
     
     
-    fn = 'quat_data.txt';
-%         fn = 'quaternion_data.txt'
+%     fn = 'quat_data.txt';
+        fn = 'quaternion_data.txt'
     X=importdata(fn,'%s');
     dataL_Quat = length(X);
     quat = [];
@@ -247,8 +251,11 @@ for d = 1:nMeasurements
     imshow(I)
     
     ipn = 'C:\Users\john\Documents\Arduino\priWand\priWand\letters\';
-    fn = [int2str(d) '_O2.bmp']
+    fn = [int2str(d) '_O2x.bmp']
     imwrite(I,[ipn fn])   
+    
+    
+    stop
  
     
     
