@@ -39,6 +39,8 @@ import (
 const (
 	circBufferL = 600 // length of buffer where we store quat data. 600 samples @5 ms update = 3 seconds
 	lp          = 28  // pixels used to represent drawn letter, on each axis, ie lpxlp
+	imuSkip     = 20  // skip first and last 50 samples
+
 )
 
 func main() {
@@ -54,18 +56,7 @@ func main() {
 	var pitch [circBufferL]float64
 	var letterImage [lp][lp]byte
 
-	// var quat_in_circ_buffer [circBufferL][5]float64   // raw quaternion inputs from file or IMU
-	// var projected_circ_buffer [circBufferL][3]float64 // quat projected to xyz
-	// var centre [3]float64                             // 3x1 averages of projected_circ_buffer coluns
-	// var centre_direction [3]float64                   // 3x1
-	// var eye_minus_cdscc [3]float64
-	// var y_direction [3]float64
-	// var centre_direction_sq_centre_col [3]float64
-	// var x_direction [3]float64
-	// var x [circBufferL]float64
-	// var y [circBufferL]float64
-	// var letterImage [lp][lp]uint8
-	// var letterImage [lp][lp]byte
+	var quat_in_circ_buffer [circBufferL][5]float64 // raw quaternion inputs from file or IMU
 
 	TFimg := image.NewRGBA(image.Rect(0, 0, 128, 64))
 
@@ -113,7 +104,8 @@ func main() {
 
 	searchDir := "letters"
 
-	pattern := "quaternion_data.txt"
+	// pattern := "quaternion_data.txt"
+	pattern := "quat_data.txt"
 
 	fileList := make([]string, 0)
 	err = filepath.Walk(searchDir, func(path string, f os.FileInfo, err error) error {
@@ -170,9 +162,19 @@ func main() {
 
 				var flt1, flt2, flt3, flt4 float64
 
-				fn, err := fmt.Fscan(f, &flt1, &flt2, &flt3, &flt4)
-				if fn == 0 || err != nil {
-					break
+				if n == 0 {
+					for i := 0; i < imuSkip; i++ {
+						fn, err := fmt.Fscan(f, &flt1, &flt2, &flt3, &flt4)
+						if fn == 0 || err != nil {
+							break
+						}
+					}
+				} else {
+					fn, err := fmt.Fscan(f, &flt1, &flt2, &flt3, &flt4)
+					if fn == 0 || err != nil {
+						break
+					}
+
 				}
 
 				quat_in_circ_buffer[n][0] = flt1
@@ -223,15 +225,17 @@ func main() {
 
 			// eof reached
 
+			n = n - 3
+
 			sortedyaw := make([]float64, n-0)
 			copy(sortedyaw, yaw[0:n])
 			sort.Float64s(sortedyaw)
 
-			irst_angleInd := 0
-			angles_diff[0] = 2*math.Pi + sortedyaw[0] - sortedyaw[1]
+			first_angleInd := 0
+			angles_diff[0] = (2 * math.Pi) + sortedyaw[0] - sortedyaw[n-1]
 			maxDiff = angles_diff[0]
-			for i := 1; i < n-1; i++ {
-				angles_diff[i] = sortedyaw[i] - sortedyaw[i+1]
+			for i := 1; i < n; i++ {
+				angles_diff[i] = sortedyaw[i] - sortedyaw[i-1]
 				if angles_diff[i] > maxDiff {
 					maxDiff = angles_diff[i]
 					first_angleInd = i
@@ -241,7 +245,7 @@ func main() {
 			first_angle := sortedyaw[first_angleInd]
 
 			pitchMin := 20.0
-			for i := 0; i < n-1; i++ {
+			for i := 0; i < n; i++ {
 				pitchMin = math.Min(pitchMin, pitch[i])
 			}
 
@@ -272,7 +276,7 @@ func main() {
 			}
 			x_range := max_yaw - min_yaw
 			y_range := max_pitch - min_pitch
-			scale := 0.95 / math.Max(x_range, y_range)
+			scale := 0.85 / math.Max(x_range, y_range)
 
 			for i := 0; i < n; i++ {
 				yaw[i] = 0.5 + (yaw[i]-min_yaw-x_range/2)*scale
@@ -288,10 +292,11 @@ func main() {
 
 			x_int := 0
 			y_int := 0
-			for i := 0; i < n-1; i++ {
+			for i := 0; i < n; i++ {
 				x_int = int(yaw[i] * lp)
 				y_int = lp - int(pitch[i]*lp) - 1
-				letterImage[y_int][x_int] = 1
+				letterImage[x_int][y_int] = 1
+				// letterImage[y_int][x_int] = 1  // ????
 			}
 
 			var joinedArray []byte
@@ -325,15 +330,14 @@ func main() {
 
 			now2 := time.Now()
 			elapsedTime := now2.Sub(now1)
-			log.Printf("elapsedTime TF=%v", elapsedTime)
 
-			// log.Printf("raw message: %v", s2)
+			log.Printf("elapsedTime TF=%v", elapsedTime)
 
 			s := strings.FieldsFunc(s2, Split)
 
-			prob, _ := strconv.ParseFloat(s[0], 64)
+			prob, _ := strconv.ParseFloat(s[1], 64)
 			// letter := strings.Trim(s[1], "'")
-			letter := strings.Replace(s[1], "'", "", -1)
+			letter := strings.Replace(s[2], "'", "", -1)
 
 			log.Printf("prob: %v", prob)
 			log.Printf("letter: %v", letter)
@@ -357,20 +361,19 @@ func main() {
 			img := image.NewRGBA(image.Rect(0, 0, lp, lp))
 
 			for i := 0; i < n; i++ {
-				x_int = int(x[i]*lp/2 + lp/2 + 1)
-				y_int = int(y[i]*lp/2 + lp/2 + 1)
-				img.Set(y_int, x_int, color.RGBA{255, 0, 0, 255})
+
+				x_int = int(yaw[i] * lp)
+				y_int = lp - int(pitch[i]*lp) - 1
+
+				img.Set(x_int, y_int, color.RGBA{255, 0, 0, 255})
+				// img.Set(y_int, x_int, color.RGBA{255, 0, 0, 255})
+
 			}
-
-			// now1 = time.Now()
-			// elapsedTime = now1.Sub(startTime)
-
-			// about 200 uS
-			// log.Printf("elapsedTime1=%v", elapsedTime)
 
 			// Save to out.bmp
 
-			sn := strings.Replace(file, "quaternion_data.txt", "quat_image.bmp", 1)
+			// sn := strings.Replace(file, "quaternion_data.txt", "quat_image.bmp", 1)
+			sn := strings.Replace(file, "quat_data.txt", "quat_image.bmp", 1)
 
 			fo, err := os.OpenFile(sn, os.O_WRONLY|os.O_CREATE, 0600)
 			if err != nil {
@@ -390,7 +393,9 @@ func main() {
 			msgP := fmt.Sprintf("letter = %s", letter)
 			oled.ShowText(TFimg, 1, msgP)
 			oled.AddGesture(TFimg, letterImage)
-			break
+			// break
+
+			time.Sleep(1 * time.Second)
 
 		}
 
