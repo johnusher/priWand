@@ -1,6 +1,7 @@
 package main
 
 // runs on windoze or raspi
+// standalone- doesnt use any hardware
 // sept. 22 updated quaternion processing algo
 // read in quaternion data from /letters directory, (iterate over all examples)
 // process to a 28x28 array
@@ -50,11 +51,8 @@ func main() {
 	yaw := make([]float64, circBufferL)
 	// sortedyaw := make([]float64, circBufferL)
 	angles_diff := make([]float64, circBufferL)
-
 	var maxDiff float64
-
 	var pitch [circBufferL]float64
-
 	var letterImage [lp][lp]byte
 
 	var n int
