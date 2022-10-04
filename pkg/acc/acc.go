@@ -139,7 +139,12 @@ func (a *acc) ResetAcc() error {
 		panic(err)
 	}
 
-	a.Sensor.EsetOperationMode(0x08)
+	// a.Sensor.EsetOperationMode(0x08)
+	err = a.Sensor.EsetOperationMode(0x0C) // fast mag cal
+
+	if err != nil {
+		panic(err)
+	}
 
 	status, err := a.Sensor.Status()
 	if err != nil {

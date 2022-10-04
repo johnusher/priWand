@@ -263,9 +263,9 @@ func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc
 				buttonDown = true
 				n = 0
 
-				bearing := accMessage.Bearing
-				roll := accMessage.Roll
-				tilt := accMessage.Tilt
+				// bearing := accMessage.Bearing
+				// roll := accMessage.Roll
+				// tilt := accMessage.Tilt
 
 				// if err != nil {
 				// 	panic(err)
@@ -276,7 +276,7 @@ func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc
 				// tilt := strconv.FormatFloat(float64(vector.Z), 'f', -1, 32)
 
 				// fmt.Printf("\r*** Bearing =%5.3f,\n", bearing)
-				fmt.Printf("\r*** Bearing =%5.3f, roll=%5.3f, tilt=%5.3f\n", bearing, roll, tilt)
+				// fmt.Printf("\r*** Bearing =%5.3f, roll=%5.3f, tilt=%5.3f\n", bearing, roll, tilt)
 
 				// initRoll =
 				// start recording quaternions from IMU

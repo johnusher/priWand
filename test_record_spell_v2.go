@@ -6,7 +6,7 @@
 // determine what letter the user draws in the air
 
 // NB binary must be run as sudo
-// eg go build test_record_spell.go && sudo ./test_record_spell -no-sound
+// eg go build test_record_spell_v2.go && sudo ./test_record_spell_v2 -no-sound
 
 // read switch input from raspberry pi 3+ GPIO and light LED
 // when button is down for a "long" time (>500 ms): record IMU data.
@@ -200,7 +200,7 @@ func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc
 
 	buttonDown := false
 	n := 0
-	var quat_in_circ_buffer [circBufferL][5]float64 // raw quaternion inputs from file or IMU
+	var quat_in_circ_buffer [circBufferL][4]float64 // raw quaternion inputs from file or IMU
 
 	more := false
 	for {
@@ -265,9 +265,9 @@ func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc
 				buttonDown = true
 				n = 0
 
-				bearing := accMessage.Bearing
-				roll := accMessage.Roll
-				tilt := accMessage.Tilt
+				// bearing := accMessage.Bearing
+				// roll := accMessage.Roll
+				// tilt := accMessage.Tilt
 
 				// if err != nil {
 				// 	panic(err)
@@ -278,7 +278,7 @@ func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc
 				// tilt := strconv.FormatFloat(float64(vector.Z), 'f', -1, 32)
 
 				// fmt.Printf("\r*** Bearing =%5.3f,\n", bearing)
-				fmt.Printf("\r*** Bearing =%5.3f, roll=%5.3f, tilt=%5.3f\n", bearing, roll, tilt)
+				// fmt.Printf("\r*** Bearing =%5.3f, roll=%5.3f, tilt=%5.3f\n", bearing, roll, tilt)
 
 				// initRoll =
 				// start recording quaternions from IMU
@@ -375,7 +375,7 @@ func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc
 
 }
 
-func quats2Image(quat_in_circ_buffer [circBufferL][5]float64, length int) (string, [lp][lp]byte) {
+func quats2Image(quat_in_circ_buffer [circBufferL][4]float64, length int) (string, [lp][lp]byte) {
 	// var imageOut float64
 	// imageOut = quatsIn * 2.0
 	// n := 0 // index to write into circ buffer
@@ -391,6 +391,11 @@ func quats2Image(quat_in_circ_buffer [circBufferL][5]float64, length int) (strin
 	tip[0] = tip[0] / tipNorm
 	tip[1] = tip[1] / tipNorm
 	tip[2] = tip[2] / tipNorm
+
+	startOffset := 10
+	length = length - startOffset
+
+	// log.Printf(" quat_in_circ_buffer : %v", quat_in_circ_buffer[1:length][:])
 
 	for n = 0; n < length; n++ {
 		s := quat_in_circ_buffer[n][0]
@@ -499,7 +504,8 @@ func quats2Image(quat_in_circ_buffer [circBufferL][5]float64, length int) (strin
 	for i := 0; i < n; i++ {
 		x_int = int(yaw[i] * lp)
 		y_int = lp - int(pitch[i]*lp) - 1
-		letterImage[y_int][x_int] = 1
+		// letterImage[y_int][x_int] = 1
+		letterImage[x_int][y_int] = 1
 	}
 
 	var joinedArray []byte
