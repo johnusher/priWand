@@ -6,7 +6,7 @@
 // determine what letter the user draws in the air
 
 // NB binary must be run as sudo
-// eg go build test_record_spell.go && sudo ./test_record_spell -no-sound
+// eg go build test_save_IMU_v2.go && sudo ./test_save_IMU_v2 -no-sound
 
 // read switch input from raspberry pi 3+ GPIO and light LED
 // when button is down for a "long" time (>500 ms): record IMU data.
@@ -61,6 +61,8 @@ func main() {
 	noSound := flag.Bool("no-sound", false, "run without sound")
 
 	logLevel := flag.String("log-level", "info", "log level, must be one of: panic, fatal, error, warn, info, debug, trace")
+
+	saveDir := flag.String("save-dir", "defaultSD", "save dir")
 
 	flag.Parse()
 
@@ -168,9 +170,32 @@ func main() {
 		panic(err)
 	}
 
-	// main loop here:
+	// make dirs:
 
-	os.Chdir("letters/feb22")
+	// saveDir := "defaultSaveDir"
+
+	if !isFlagPassed("saveDir") {
+		fmt.Println("saveDir is not passed !!!")
+	}
+
+	log.Printf("saveDirIn: %v", saveDir)
+
+	os.Chdir("letters/")
+
+	if _, err := os.Stat(*saveDir); os.IsNotExist(err) {
+		os.Mkdir(*saveDir, 0700)
+	}
+
+	os.Chdir(*saveDir)
+
+	OG_dir2, err := os.Getwd()
+	if err != nil {
+		log.Infof("problem changing dir")
+	}
+
+	log.Printf("OG_dir2: %v", OG_dir2)
+
+	// main loop here:
 
 	// go forth
 	go kb.Run()
@@ -204,9 +229,9 @@ func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc
 
 	buttonDown := false
 	n := 0
-	var quat_in_circ_buffer [circBufferL][5]float64    // raw quaternion inputs from IMU
-	var gravity_in_circ_buffer [circBufferL][5]float64 // raw gravity inputs from  IMU
-	var euler_in_circ_buffer [circBufferL][5]float64   // raw euler inputs from  IMU
+	var quat_in_circ_buffer [circBufferL][4]float64 // raw quaternion inputs from IMU
+	// var gravity_in_circ_buffer [circBufferL][5]float64 // raw gravity inputs from  IMU
+	// var euler_in_circ_buffer [circBufferL][5]float64   // raw euler inputs from  IMU
 
 	more := false
 	for {
@@ -251,13 +276,13 @@ func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc
 				quat_in_circ_buffer[n][2] = accMessage.QuatY
 				quat_in_circ_buffer[n][3] = accMessage.QuatZ
 
-				gravity_in_circ_buffer[n][0] = accMessage.GravX
-				gravity_in_circ_buffer[n][1] = accMessage.GravY
-				gravity_in_circ_buffer[n][2] = accMessage.GravZ
+				// gravity_in_circ_buffer[n][0] = accMessage.GravX
+				// gravity_in_circ_buffer[n][1] = accMessage.GravY
+				// gravity_in_circ_buffer[n][2] = accMessage.GravZ
 
-				euler_in_circ_buffer[n][0] = accMessage.Bearing
-				euler_in_circ_buffer[n][1] = accMessage.Roll
-				euler_in_circ_buffer[n][2] = accMessage.Tilt
+				// euler_in_circ_buffer[n][0] = accMessage.Bearing
+				// euler_in_circ_buffer[n][1] = accMessage.Roll
+				// euler_in_circ_buffer[n][2] = accMessage.Tilt
 
 			}
 
@@ -316,7 +341,7 @@ func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc
 						t.Hour(), t.Minute(), t.Second())
 
 					// fmt.Println("Name:", newDir)
-					// log.Printf("Name: %v", newDir)
+					log.Printf("Name: %v", newDir)
 					// ioutil.WriteFile(+name, []byte("Contents"), 0)
 
 					if _, err := os.Stat(newDir); os.IsNotExist(err) {
@@ -328,11 +353,41 @@ func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc
 						log.Infof("problem changing dir")
 					}
 
+					log.Printf("OG_dir: %v", OG_dir)
+
 					os.Chdir(newDir)
 
 					// os.Chdir(OG_dir)
 					// convert quats to image:
 					encoded, letterImage := quats2Image(quat_in_circ_buffer, n)
+
+					// now save quats
+					fquat, err := os.Create("quat_data.txt")
+					if err != nil {
+						panic(err)
+					}
+					defer fquat.Close()
+
+					length := n
+					startOffset := 10
+					length = length - startOffset
+
+					for n = 0; n < length; n++ {
+						w := quat_in_circ_buffer[n+startOffset][0]
+						x := quat_in_circ_buffer[n+startOffset][1]
+						y := quat_in_circ_buffer[n+startOffset][2]
+						z := quat_in_circ_buffer[n+startOffset][3]
+						sw := strconv.FormatFloat(float64(w), 'f', -1, 32)
+						sx := strconv.FormatFloat(float64(x), 'f', -1, 32)
+						sy := strconv.FormatFloat(float64(y), 'f', -1, 32)
+						sz := strconv.FormatFloat(float64(z), 'f', -1, 32)
+						_, err := fquat.WriteString(sw + " " + sx + " " + sy + " " + sz + "\n")
+						if err != nil {
+							panic(err)
+						}
+					}
+
+					os.Chdir(OG_dir)
 
 					// send encoded base64 28x28 ti TF:
 					_, err = stdin.Write([]byte(encoded))
@@ -585,4 +640,14 @@ func GetFilenameDate() string {
 
 func Split(r rune) bool {
 	return r == ':' || r == ',' || r == '(' || r == ')' || r == '[' || r == ']'
+}
+
+func isFlagPassed(name string) bool {
+	found := false
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == name {
+			found = true
+		}
+	})
+	return found
 }
