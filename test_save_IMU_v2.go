@@ -174,9 +174,10 @@ func main() {
 
 	// saveDir := "defaultSaveDir"
 
-	if !isFlagPassed("saveDir") {
-		fmt.Println("saveDir is not passed !!!")
-	}
+	// if !isFlagPassed("saveDir") {
+	// 	fmt.Println("saveDir is not passed !!!")
+	// 	*saveDir = "defaultSaveDir"
+	// }
 
 	log.Printf("saveDirIn: %v", saveDir)
 
@@ -546,10 +547,10 @@ func quats2Image(quat_in_circ_buffer [circBufferL][4]float64, length int) (strin
 		}
 	}
 
-	min_yaw := 10.0
-	max_yaw := -10.0
-	min_pitch := 10.0
-	max_pitch := -10.0
+	min_yaw := 50.0
+	max_yaw := -50.0
+	min_pitch := 50.0
+	max_pitch := -50.0
 	for i := 0; i < n; i++ {
 		min_yaw = math.Min(min_yaw, yaw[i])
 		max_yaw = math.Max(max_yaw, yaw[i])
