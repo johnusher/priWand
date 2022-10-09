@@ -83,7 +83,7 @@ pyenv
 
 gyro_data.txt
 LinAcc_data.txt
-
+quat_data.txt
 
 # Windoze:
 /~$RaspiWiring.pptx

@@ -1,6 +1,8 @@
 // test_save_IMU_v2.go
 
 // save IMU outputs to IMAGE file when we press button
+// specify pathname to save raw image and quaternions here:
+// go run test_save_IMU_v2.go -no-sound -save-dir stewartLee
 
 // connectd with a push button on GPIO and IMU (Bosch BNo055)
 // determine what letter the user draws in the air
@@ -475,10 +477,10 @@ func quats2Image(quat_in_circ_buffer [circBufferL][4]float64, length int) (strin
 	// log.Printf(" quat_in_circ_buffer : %v", quat_in_circ_buffer[1:length][:])
 
 	for n = 0; n < length; n++ {
-		s := quat_in_circ_buffer[n][0]
-		x := quat_in_circ_buffer[n][1]
-		y := quat_in_circ_buffer[n][2]
-		z := quat_in_circ_buffer[n][3]
+		s := quat_in_circ_buffer[n+startOffset][0]
+		x := quat_in_circ_buffer[n+startOffset][1]
+		y := quat_in_circ_buffer[n+startOffset][2]
+		z := quat_in_circ_buffer[n+startOffset][3]
 
 		x0 := tip[0]
 		y0 := tip[1]
