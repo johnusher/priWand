@@ -562,7 +562,8 @@ func quats2Image(quat_in_circ_buffer [circBufferL][4]float64, length int) (strin
 
 	x_range := max_yaw - min_yaw
 	y_range := max_pitch - min_pitch
-	scale := 0.95 / math.Max(x_range, y_range)
+	scale := 0.92 / math.Max(x_range, y_range)
+	// 92 % scale gives 2 pixels around edge
 
 	for i := 0; i < n; i++ {
 		yaw[i] = 0.5 + (yaw[i]-min_yaw-x_range/2)*scale
@@ -581,8 +582,8 @@ func quats2Image(quat_in_circ_buffer [circBufferL][4]float64, length int) (strin
 	x_int := 0
 	y_int := 0
 	for i := 0; i < n; i++ {
-		x_int = int(yaw[i] * lp)
-		y_int = lp - int(pitch[i]*lp) - 1
+		x_int = 1 + int(yaw[i]*lp)
+		y_int = 1 + lp - int(pitch[i]*lp) - 1
 		// letterImage[y_int][x_int] = 1
 		letterImage[x_int][y_int] = 1
 	}
