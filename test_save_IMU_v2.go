@@ -7,7 +7,7 @@
 // connectd with a push button on GPIO and IMU (Bosch BNo055)
 // determine what letter the user draws in the air
 
-// NB binary must be run as sudo
+// NB binary must be run as sudo???
 // eg go build test_save_IMU_v2.go && sudo ./test_save_IMU_v2 -no-sound
 
 // read switch input from raspberry pi 3+ GPIO and light LED
@@ -183,7 +183,7 @@ func main() {
 
 	log.Printf("saveDirIn: %v", saveDir)
 
-	os.Chdir("letters/")
+	os.Chdir("letters/2710/")
 
 	if _, err := os.Stat(*saveDir); os.IsNotExist(err) {
 		os.Mkdir(*saveDir, 0700)
@@ -232,9 +232,9 @@ func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc
 
 	buttonDown := false
 	n := 0
-	var quat_in_circ_buffer [circBufferL][4]float64 // raw quaternion inputs from IMU
-	// var gravity_in_circ_buffer [circBufferL][5]float64 // raw gravity inputs from  IMU
-	// var euler_in_circ_buffer [circBufferL][5]float64   // raw euler inputs from  IMU
+	var quat_in_circ_buffer [circBufferL][4]float64    // raw quaternion inputs from IMU
+	var gravity_in_circ_buffer [circBufferL][3]float64 // raw gravity inputs from  IMU
+	var euler_in_circ_buffer [circBufferL][3]float64   // raw euler inputs from  IMU
 
 	more := false
 	for {
@@ -279,13 +279,13 @@ func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc
 				quat_in_circ_buffer[n][2] = accMessage.QuatY
 				quat_in_circ_buffer[n][3] = accMessage.QuatZ
 
-				// gravity_in_circ_buffer[n][0] = accMessage.GravX
-				// gravity_in_circ_buffer[n][1] = accMessage.GravY
-				// gravity_in_circ_buffer[n][2] = accMessage.GravZ
+				gravity_in_circ_buffer[n][0] = accMessage.GravX
+				gravity_in_circ_buffer[n][1] = accMessage.GravY
+				gravity_in_circ_buffer[n][2] = accMessage.GravZ
 
-				// euler_in_circ_buffer[n][0] = accMessage.Bearing
-				// euler_in_circ_buffer[n][1] = accMessage.Roll
-				// euler_in_circ_buffer[n][2] = accMessage.Tilt
+				euler_in_circ_buffer[n][0] = accMessage.Bearing
+				euler_in_circ_buffer[n][1] = accMessage.Roll
+				euler_in_circ_buffer[n][2] = accMessage.Tilt
 
 			}
 
@@ -389,6 +389,50 @@ func GPIOLoop(keys <-chan rune, gpioCh <-chan gpio.GPIOMessage, accCh <-chan acc
 							panic(err)
 						}
 					}
+
+					// now save gravity
+					fgrav, err := os.Create("gravity_data.txt")
+					if err != nil {
+						panic(err)
+					}
+
+					defer fgrav.Close()
+
+					for n = 0; n < length; n++ {
+						x := gravity_in_circ_buffer[n+startOffset][0]
+						y := gravity_in_circ_buffer[n+startOffset][1]
+						z := gravity_in_circ_buffer[n+startOffset][2]
+						sx := strconv.FormatFloat(float64(x), 'f', -1, 32)
+						sy := strconv.FormatFloat(float64(y), 'f', -1, 32)
+						sz := strconv.FormatFloat(float64(z), 'f', -1, 32)
+						_, err := fgrav.WriteString(sx + " " + sy + " " + sz + "\n")
+						if err != nil {
+							panic(err)
+						}
+					}
+
+					// now save euler
+					feuler, err := os.Create("euler_data.txt")
+					if err != nil {
+						panic(err)
+					}
+
+					defer feuler.Close()
+
+					for n = 0; n < length; n++ {
+						x := euler_in_circ_buffer[n+startOffset][0]
+						y := euler_in_circ_buffer[n+startOffset][1]
+						z := euler_in_circ_buffer[n+startOffset][2]
+						sx := strconv.FormatFloat(float64(x), 'f', -1, 32)
+						sy := strconv.FormatFloat(float64(y), 'f', -1, 32)
+						sz := strconv.FormatFloat(float64(z), 'f', -1, 32)
+						_, err := feuler.WriteString(sx + " " + sy + " " + sz + "\n")
+						if err != nil {
+							panic(err)
+						}
+					}
+
+					log.Infof("saved files")
 
 					os.Chdir(OG_dir)
 
