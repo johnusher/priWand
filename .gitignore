@@ -81,9 +81,9 @@ pyenv
 
 # txt files from logging
 
-gyro_data.txt
-LinAcc_data.txt
-quat_data.txt
+# gyro_data.txt
+# LinAcc_data.txt
+# quat_data.txt
 
 # Windoze:
 /~$RaspiWiring.pptx
