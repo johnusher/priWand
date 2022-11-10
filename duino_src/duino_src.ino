@@ -1,3 +1,5 @@
+
+
 /**
   Arduino code:
   For single programmable LED
@@ -7,16 +9,26 @@
   Select "Arduino Duemilanove and proc 328P
 
   serial messages should be semi-colon delimited
-  eg 0;20;40;10
+
   first value is mode
-  mode 0 = solid [g r b]
-  mode 1 = flash [g r b onTime offTime]
+  mode 0 = solid [g r b]   eg 0;20;40;100
+  mode 1 = flash [g r b onTime offTime] eg 1;64;20;5;100;100
   mode 2 = random [not quite working]
   mode 3 = rainbow fade,  second argument should be 25 for fast fade
-  mode 9 = set brightness (right shift amount of GRB)
+  mode 5 = program flash [g r b N onTime1 offTime1 ... onTimeN offTimeN] eg 5;64;20;5;3;100;100;200;200;300;300
+
+  mode 9 = set brightness (right shift amount of GRB) eg 9;2
 
 */
 
+#include <Boards.h>
+#include <Firmata.h>
+#include <FirmataConstants.h>
+#include <FirmataDefines.h>
+#include <FirmataMarshaller.h>
+#include <FirmataParser.h>
+
+#include <Wire.h>   // I2C
 
 #include "ard_JU.h"
 
@@ -31,7 +43,9 @@ void setup() {
   // Serial.begin(9600);
   // Serial.begin(19200);
   Serial.begin(115200);
-
+    Wire.begin(I2C_SLAVE_ADDRESS);                // join i2c bus with address #2 
+  Wire.onRequest(requestEvents); // register event 
+   Wire.onReceive(receiveEvents);
   //  idleCol =  strip.Color(ColG, ColR, ColB);
 }
 
@@ -65,6 +79,24 @@ void loop() {
 }
 
 
+void requestEvents()
+{
+  Serial.println(F("---> recieved request"));
+  Serial.print(F("sending value : "));
+  Serial.println(53);
+  Wire.write(53);
+}
+
+void receiveEvents(int numBytes)
+{  
+  Serial.println(F("---> recieved events"));
+  i2cRx = Wire.read();
+  Serial.print(numBytes);
+  Serial.println(F("bytes recieved"));
+  Serial.print(F("recieved value : "));
+  Serial.println(i2cRx);
+}
+
 
 void checkSerialInput() {
 
@@ -97,9 +129,13 @@ void checkSerialInput() {
   serialResponse.toCharArray(buf, sizeof(buf));
   char *p = buf;
   char *str;
+
+  //   Serial.println(buf);
+  //  Serial.println(sizeof(buf));
+
   i = 1;
   while ((str = strtok_r(p, ";", &p)) != NULL) { // delimiter is the semicolon
-    //    Serial.println(str);
+    //        Serial.println(str);
     strings[i] = str;
     i = i + 1;
   }
@@ -112,7 +148,7 @@ void checkSerialInput() {
     //      Serial.println("j:");
     data[j] = String(strings[j]).toInt();
     //    Serial.print("a:");
-    //    Serial.println(strings[j] );
+    //        Serial.println(strings[j] );
     //    Serial.print("b:");
     //    Serial.println(data[j] );
     //    Serial.println();
@@ -138,6 +174,12 @@ void checkSerialInput() {
     mode3();
   }
 
+  if (serial_in == '5') {
+    Mode = 5;
+    mode5();
+  }
+
+
   if (serial_in == '9') {
     Mode = 9;
     mode9();
@@ -148,16 +190,21 @@ void checkSerialInput() {
 }
 
 void mode0() {
-//  Serial.println("mode 0");
+
+  //  Serial.println(data[1]);
+  //  Serial.println(data[2]);
+  //  Serial.println(data[3]);
+  //  Serial.println(brightness);
+  //  Serial.println("mode 0");
   // solid
 
-    ColR = data[1] ;
-    ColG = data[2] ;
-    ColB = data[3] ;
+  ColR = data[1] ;
+  ColG = data[2] ;
+  ColB = data[3] ;
 
   while (Serial.available() == 0) {
 
-    strip.setPixelColor(0, ColG>> brightness, ColR>> brightness, ColB>> brightness);
+    strip.setPixelColor(0, ColG >> brightness, ColR >> brightness, ColB >> brightness);
     strip.show();
 
     for (i = 0; i < 65530; i++) {
@@ -169,20 +216,29 @@ void mode0() {
 }
 
 void mode1() {
-//  Serial.println("mode 1");
-  // flash
+  //  Serial.println("mode 1");
 
-    ColR = data[1] ;
-    ColG = data[2] ;
-    ColB = data[3];
+  //  Serial.println(data[1]);
+  //  Serial.println(data[2]);
+  //  Serial.println(data[3]);
+  //  Serial.println(data[4]);
+  //  Serial.println(data[5]);
+  //  Serial.println(brightness);
+  //  Serial.println("mode 1");
 
-    onTime = data[4];
-    offTime = data[5];
-    
+  // flash (blink, on/off)
+
+  ColR = data[1] ;
+  ColG = data[2] ;
+  ColB = data[3];
+
+  onTime = data[4];
+  offTime = data[5];
+
   while (Serial.available() == 0) {
 
-//    Serial.println(brightness);
-//    Serial.println("");
+    //    Serial.println(brightness);
+    //    Serial.println("");
 
 
     //    Serial.print("ColG:");
@@ -192,7 +248,7 @@ void mode1() {
     //     Serial.print("ColB:");
     //    Serial.println(ColB);
 
-    strip.setPixelColor(0, ColG>> brightness, ColR>> brightness, ColB>> brightness);
+    strip.setPixelColor(0, ColG >> brightness, ColR >> brightness, ColB >> brightness);
     strip.show();
 
     for (i = 0; i < onTime; i++) {
@@ -215,12 +271,85 @@ void mode1() {
 }
 
 
+void mode5() {
+  //  mode 5 = program flash [g r b N onTime1 offTime1 ... onTimeN offTimeN] eg 5;64;20;5;3;100;100;200;200;300;300
+  //eg 5;64;20;5;2;100;100
+  //eg 5;64;20;5;3;100;100;200;200
+  //eg 5;64;20;5;4;100;100;200;200;300;300
+  //eg 5;64;20;5;5;100;100;200;200;300;300;400;400
+
+  //  Serial.println(data[1]);
+  //  Serial.println(data[2]);
+  //  Serial.println(data[3]);
+  //  Serial.println(data[4]);
+  //  Serial.println(data[5]);
+  //  Serial.println(brightness);
+  //  Serial.println("mode 5");
+
+  // flash (blink, on/off)
+
+  ColR = data[1] ;
+  ColG = data[2] ;
+  ColB = data[3];
+
+  nBlinks = data[4];
+
+  //    Serial.println("x");
+  //    Serial.println(data[5]);
+  //    Serial.println(data[6]);
+  //
+  //    Serial.println(data[7]);
+  //    Serial.println(data[8]);
+  //
+  //    Serial.println(data[9]);
+  //    Serial.println(data[10]);
+
+
+  //   Serial.println(nBlinks);
+
+  while (Serial.available() == 0) {
+
+    for (ll = 0; ll < nBlinks; ll++) {
+
+      //        Serial.println("x");
+      //        Serial.println(ll);
+      //        Serial.println(data[5+2*ll]);
+      //        Serial.println(data[5+2*ll+1]);
+
+      onTime = data[5 + 2 * ll];
+      offTime = data[5 + 2 * ll + 1];
+
+      strip.setPixelColor(0, ColG >> brightness, ColR >> brightness, ColB >> brightness);
+      strip.show();
+
+      for (i = 0; i < onTime; i++) {
+        for (j = 0; j < onTime; j++) {
+          checkSerialInput();
+        }
+      }
+
+      strip.setPixelColor(0, 0, 0, 0);
+      strip.show();
+
+      for (i = 0; i < offTime; i++) {
+        for (j = 0; j < offTime; j++) {
+          checkSerialInput();
+        }
+      }
+
+    }
+
+  }
+
+}
+
+
 void mode2() {
-//  Serial.println("mode 2");
+  //  Serial.println("mode 2");
   // flash random
-    onTime = data[1];
-    offTime = data[2];
-    
+  onTime = data[1];
+  offTime = data[2];
+
   while (Serial.available() == 0) {
 
     for (k = 1; k < 97; k++) {
@@ -246,13 +375,13 @@ void mode2() {
 }
 
 void mode3() {
-//  Serial.println("mode 3");
+  //  Serial.println("mode 3");
   // fade rainbow
   // second argument should be 25 for fast fade
 
   onTime = data[1];
   while (Serial.available() == 0) {
-    
+
     for (int k = 0; k < 360; k++)
     {
       trueHSV(0, k);
@@ -268,16 +397,16 @@ void mode3() {
 }
 
 void mode9() {
-//  Serial.println("mode 9: adjust brightness");
+  //  Serial.println("mode 9: adjust brightness");
 
   brightness = data[1];
 
-//  Serial.println(brightness);
+  //  Serial.println(brightness);
   //   Serial.println(Mode);
-//  Serial.println();
+  //  Serial.println();
 
   if (Mode == 0) {
-//    Serial.println(Mode);
+    //    Serial.println(Mode);
     Mode = 0;
     mode0();
   }
