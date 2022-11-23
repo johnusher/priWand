@@ -22,11 +22,11 @@
 */
 
 #include <Boards.h>
-//#include <Firmata.h>
-//#include <FirmataConstants.h>
-//#include <FirmataDefines.h>
-//#include <FirmataMarshaller.h>
-//#include <FirmataParser.h>
+#include <Firmata.h>
+#include <FirmataConstants.h>
+#include <FirmataDefines.h>
+#include <FirmataMarshaller.h>
+#include <FirmataParser.h>
 
 #include <Wire.h>   // I2C
 
@@ -44,9 +44,6 @@ void setup() {
   // Serial.begin(19200);
   Serial.begin(115200);
     Wire.begin(I2C_SLAVE_ADDRESS);                // join i2c bus with address #2 
-    Wire.setWireTimeout( 250, true);   // 1000 µs is 1 ms timeout
-    Wire.setClock(400000);  // kHz
-    
   Wire.onRequest(requestEvents); // register event 
    Wire.onReceive(receiveEvents);
   //  idleCol =  strip.Color(ColG, ColR, ColB);
@@ -92,53 +89,12 @@ void requestEvents()
 
 void receiveEvents(int numBytes)
 {  
-//  Serial.println(F("---> recieved events"));
+  Serial.println(F("---> recieved events"));
   i2cRx = Wire.read();
-
-  if (i2cRx == -1) {
-    //    empty
-    Serial.println(F("i2cRx empty"));
-    return;
-
-  }
-  
-//  Serial.print(numBytes);
-//  Serial.println(F(" bytes recieved"));
-//  Serial.print(F("recieved value : "));
-//  Serial.println(i2cRx);
-
-
-  // Convert from String Object to String.
-  char buf[sizeof(sz)];
-  i2cRx.toCharArray(buf, sizeof(buf));
-  char *p = buf;
-  char *str;
-
-  //   Serial.println(buf);
-  //  Serial.println(sizeof(buf));
-
-  i = 1;
-  while ((str = strtok_r(p, ";", &p)) != NULL) { // delimiter is the semicolon
-    //        Serial.println(str);
-    strings[i] = str;
-    i = i + 1;
-  }
-  i = i - 1;
-
-    Serial.println("i:");
-    Serial.println(i);
-
-  for (j = 1; j < i + 1; j++) {
-    //      Serial.println("j:");
-    data[j] = String(strings[j]).toInt();
-    //    Serial.print("a:");
-    //        Serial.println(strings[j] );
-    //    Serial.print("b:");
-        Serial.println(data[j] );
-    //    Serial.println();
-  }
-
-  
+  Serial.print(numBytes);
+  Serial.println(F("bytes recieved"));
+  Serial.print(F("recieved value : "));
+  Serial.println(i2cRx);
 }
 
 

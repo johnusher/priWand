@@ -9,7 +9,8 @@ int Mode = 0;
 
 # define I2C_SLAVE_ADDRESS 42
 
-int i2cRx = 0;
+//int i2cRx = 0;
+String i2cRx = "";
 String serialResponse = "";
 char sz[] = "1; 2; 3;4;5;6.414;7;8;9;10;11;12;13;14;15;16;17;19";
 
