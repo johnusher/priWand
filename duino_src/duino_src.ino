@@ -11,8 +11,8 @@
   serial messages should be semi-colon delimited
 
   first value is mode
-  mode 0 = solid [g r b]   eg 0;20;40;100
-  mode 1 = flash [g r b onTime offTime] eg 1;64;20;5;100;100
+  mode 0 = solid [g r b]   eg 0;20;40;100 [serial]  or 00 14 28 64 [i2c]
+  mode 1 = flash [g r b onTime offTime] eg 1;64;20;5;100;100 [serial]  or 01 40 14 05 64 64 [i2c]
   mode 2 = random [not quite working]
   mode 3 = rainbow fade,  second argument should be 25 for fast fade
   mode 5 = program flash [g r b N onTime1 offTime1 ... onTimeN offTimeN] eg 5;64;20;5;3;100;100;200;200;300;300
@@ -21,7 +21,7 @@
 
 */
 
-#include <Boards.h>
+//#include <Boards.h>
 //#include <Firmata.h>
 //#include <FirmataConstants.h>
 //#include <FirmataDefines.h>
@@ -43,12 +43,12 @@ void setup() {
   // Serial.begin(9600);
   // Serial.begin(19200);
   Serial.begin(115200);
-    Wire.begin(I2C_SLAVE_ADDRESS);                // join i2c bus with address #2 
-    Wire.setWireTimeout( 250, true);   // 1000 µs is 1 ms timeout
-    Wire.setClock(400000);  // kHz
-    
-  Wire.onRequest(requestEvents); // register event 
-   Wire.onReceive(receiveEvents);
+  Wire.begin(I2C_SLAVE_ADDRESS);                // join i2c bus with address #2
+  Wire.setWireTimeout( 250, true);   // 1000 µs is 1 ms timeout
+  Wire.setClock(400000);  // kHz
+
+  Wire.onRequest(requestEvents); // register event
+  Wire.onReceive(receiveEvents);
   //  idleCol =  strip.Color(ColG, ColR, ColB);
 }
 
@@ -91,54 +91,67 @@ void requestEvents()
 }
 
 void receiveEvents(int numBytes)
-{  
-//  Serial.println(F("---> recieved events"));
-  i2cRx = Wire.read();
+{
+  //  Serial.println(F("---> recieved events"));
+  int byte1I2C = Wire.read();
 
-  if (i2cRx == -1) {
+  if (byte1I2C == -1) {
     //    empty
     Serial.println(F("i2cRx empty"));
     return;
 
   }
-  
-//  Serial.print(numBytes);
-//  Serial.println(F(" bytes recieved"));
-//  Serial.print(F("recieved value : "));
-//  Serial.println(i2cRx);
+  //  Serial.println(F("i2cRx empty"));
+  //  Serial.println(numBytes);
 
+  data[0] = byte1I2C;
 
-  // Convert from String Object to String.
-  char buf[sizeof(sz)];
-  i2cRx.toCharArray(buf, sizeof(buf));
-  char *p = buf;
-  char *str;
+  for (j = 1; j < numBytes; j++) {
 
-  //   Serial.println(buf);
-  //  Serial.println(sizeof(buf));
+    data[j] = Wire.read();
+    //    Serial.println(data[j] );
 
-  i = 1;
-  while ((str = strtok_r(p, ";", &p)) != NULL) { // delimiter is the semicolon
-    //        Serial.println(str);
-    strings[i] = str;
-    i = i + 1;
-  }
-  i = i - 1;
-
-    Serial.println("i:");
-    Serial.println(i);
-
-  for (j = 1; j < i + 1; j++) {
-    //      Serial.println("j:");
-    data[j] = String(strings[j]).toInt();
-    //    Serial.print("a:");
-    //        Serial.println(strings[j] );
-    //    Serial.print("b:");
-        Serial.println(data[j] );
-    //    Serial.println();
   }
 
-  
+
+
+
+  if (data[0] == 0) {
+    Mode = 0;
+    //    Serial.println("Mode 0");
+    mode0();
+  }
+
+  if (data[0] == 1) {
+    Mode = 1;
+    mode1();
+  }
+
+  if (data[0] == 2) {
+    Mode = 2;
+    mode2();
+  }
+
+  if (data[0] == 3) {
+    Mode = 3;
+    mode3();
+  }
+
+  if (data[0] == 5) {
+    Mode = 5;
+    mode5();
+  }
+
+
+  if (data[0] == 9) {
+    Mode = 9;
+    mode9();
+  }
+
+  return;
+
+
+
 }
 
 
