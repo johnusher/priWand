@@ -5,8 +5,9 @@
 // connectd with a push button on GPIO and IMU (Bosch BNo055)
 // determine what letter the user draws in the air
 
-// NB binary must be run as sudo
+// NB binary must be run as sudo?
 // eg go build test_record_spell_v2.go && sudo ./test_record_spell_v2 -no-sound
+// go run test_record_spell_v2.go -no-sound
 
 // read switch input from raspberry pi 3+ GPIO and light LED
 // when button is down for a "long" time (>500 ms): record IMU data.
