@@ -656,7 +656,7 @@ func (s *Sensor) init() error {
 		return err
 	}
 
-	time.Sleep(1000 * time.Millisecond)
+	time.Sleep(500 * time.Millisecond)
 
 	//xxxxxxxxxxx
 	// status, err := s.Status()
@@ -690,10 +690,10 @@ func (s *Sensor) init() error {
 	}
 
 	// Set temperature source to gyroscope, as it seems to be more accurate
-	err = s.bus.Write(bno055TempSource, 0x01)
-	if err != nil {
-		return err
-	}
+	// err = s.bus.Write(bno055TempSource, 0x01)
+	// if err != nil {
+	// 	return err
+	// }
 
 	//xxxxxxxxxxx
 	// status, err = s.Status()
@@ -709,10 +709,17 @@ func (s *Sensor) init() error {
 		return err
 	}
 
-	err = s.setOperationMode(bno055OperationModeNdof)
+	// err = s.setOperationMode(bno055OperationModeNdof)
+	// if err != nil {
+	// 	return err
+	// }
+
+	err = s.setOperationMode(bno055OperationModeImuplus)
 	if err != nil {
 		return err
 	}
+
+	fmt.Printf("set op mode to IMU no mag")
 
 	// err = s.setOperationMode(bno055OperationModeImuplus)
 	// if err != nil {
@@ -752,7 +759,7 @@ func (s *Sensor) Einit() error {
 		return err
 	}
 
-	time.Sleep(1000 * time.Millisecond)
+	time.Sleep(50 * time.Millisecond)
 
 	err = s.checkExists()
 	if err != nil {
@@ -760,12 +767,12 @@ func (s *Sensor) Einit() error {
 	}
 
 	//xxxxxxxxxxx
-	status, err := s.Status()
-	if err != nil {
-		panic(err)
-	}
+	// status, err := s.Status()
+	// if err != nil {
+	// 	panic(err)
+	// }
 
-	fmt.Printf("*** Statusa: system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
+	// fmt.Printf("*** Statusa: system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
 	//xxxxxxxxxxx
 
 	// Set to normal power mode
@@ -794,11 +801,11 @@ func (s *Sensor) Einit() error {
 	// fmt.Printf("*** Statusb: system=%v, system_error=%v, self_test=%v\n", status.System, status.SystemError, status.SelfTest)
 	//xxxxxxxxxxx
 
-	// Set temperature source to gyroscope, as it seems to be more accurate
-	err = s.bus.Write(bno055TempSource, 0x01)
-	if err != nil {
-		return err
-	}
+	// // Set temperature source to gyroscope, as it seems to be more accurate
+	// err = s.bus.Write(bno055TempSource, 0x01)
+	// if err != nil {
+	// 	return err
+	// }
 
 	// Set the unit selection bits
 	err = s.bus.Write(bno055UnitSel, 0x0)
@@ -806,10 +813,13 @@ func (s *Sensor) Einit() error {
 		return err
 	}
 
-	err = s.setOperationMode(bno055OperationModeNdof)
+	// err = s.setOperationMode(bno055OperationModeNdof)
+	err = s.setOperationMode(bno055OperationModeImuplus)
 	if err != nil {
 		return err
 	}
+
+	fmt.Printf("set op mode to IMU no mag")
 
 	// err = s.setOperationMode(bno055OperationModeImuplus)
 	// if err != nil {

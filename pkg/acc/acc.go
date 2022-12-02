@@ -140,7 +140,8 @@ func (a *acc) ResetAcc() error {
 	}
 
 	// a.Sensor.EsetOperationMode(0x08)
-	err = a.Sensor.EsetOperationMode(0x0C) // fast mag cal
+	// err = a.Sensor.EsetOperationMode(0x0C) // fast mag cal
+	err = a.Sensor.EsetOperationMode(0x08) // bno055OprMode is IMUPLUS = 1000 =0x8
 
 	if err != nil {
 		panic(err)
