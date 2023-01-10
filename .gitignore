@@ -1,6 +1,8 @@
 go.mod
 go.sum
 
+letters/groupedWandLetters/
+
 # Specific binaries
 GPIOTEST
 test_quats_64_to_py_tf
